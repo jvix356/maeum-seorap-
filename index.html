@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>마음 서랍</title>
+<meta name="description" content="세밀한 감정 단어와 귀여운 감정 캐릭터로 쓰는, 나만 여는 감정 일기">
+<meta name="theme-color" content="#474DA0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-family:system-ui,sans-serif;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+.site-foot{text-align:center;font-size:12px;color:var(--muted);padding-top:24px}
+.site-foot a{color:var(--muted)}
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: 한 줄 세로 흐름의 일기장. 잠금 화면 → 쓰기 / 기록 / 보관 세 탭. 그림은 감정 색으로 자동 생성 */
+:root{
+  --bg:#ECEEF4; --surface:#FFFFFF; --sunk:#F4F5F9; --ink:#1E2231; --muted:#636A7E; --line:#D5D9E4;
+  --accent:#474DA0; --accent-ink:#FFFFFF; --danger:#B83A32;
+  --f-display:"Gowun Batang","Nanum Myeongjo",serif;
+  --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13151D; --surface:#1C1F2A; --sunk:#171922; --ink:#E7E9F1; --muted:#9BA1B5; --line:#2D3142;
+  --accent:#A2A7F2; --accent-ink:#15172A; --danger:#F08A80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13151D; --surface:#1C1F2A; --sunk:#171922; --ink:#E7E9F1; --muted:#9BA1B5; --line:#2D3142;
+  --accent:#A2A7F2; --accent-ink:#15172A; --danger:#F08A80; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+*{box-sizing:border-box}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;text-wrap:balance;margin:0}
+h1{font-size:28px;letter-spacing:-.01em}
+h2{font-size:21px}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 16px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:transparent}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input[type=password],input[type=text],input[type=date],textarea{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{resize:vertical;min-height:140px;font-family:var(--f-display);font-size:16px;line-height:1.85}
+label.lbl{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+.field{display:flex;flex-direction:column}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.msg{font-size:13px;min-height:1.2em}
+.msg.err{color:var(--danger)}
+.msg.ok{color:var(--accent)}
+
+/* lock */
+.lock{max-width:440px;margin:4vh auto 0;display:flex;flex-direction:column;gap:18px}
+.lock canvas{width:100%;height:auto;border-radius:16px;display:block}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+
+/* header + tabs */
+header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{border:0;background:transparent;padding:7px 14px;border-radius:9px;color:var(--muted);font-weight:500}
+.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-ink)}
+
+/* art */
+.art{width:100%;height:auto;aspect-ratio:16/10;border-radius:14px;display:block;max-width:100%}
+
+/* emotion picker */
+.fams{display:flex;gap:6px;flex-wrap:wrap}
+.fam{border:1px solid var(--line);background:var(--sunk);border-radius:999px;padding:5px 12px 5px 9px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.fam .dot{width:10px;height:10px;border-radius:50%}
+.fam[aria-pressed=true]{border-color:var(--ink);background:var(--surface);font-weight:600}
+.words{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;max-height:300px;overflow:auto;padding:2px}
+.word{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 10px 6px 6px;display:grid;grid-template-columns:44px 1fr;gap:6px;align-items:center;min-width:0;border-left-width:4px}
+.word canvas{width:44px;height:44px;display:block}
+.word div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.word b{font-family:var(--f-display);font-size:16px;font-weight:700}
+.word span{font-size:12px;color:var(--muted);line-height:1.4}
+.word[aria-pressed=true]{background:var(--sunk);outline:2px solid var(--ink);outline-offset:-1px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;min-height:30px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--sunk)}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.chip button{border:0;background:none;padding:0 0 0 2px;color:var(--muted);font-size:15px;line-height:1}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.scale{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+
+/* list */
+.month{display:flex;flex-direction:column;gap:10px}
+.month-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.strip{display:flex;gap:3px;flex-wrap:wrap}
+.strip i{width:10px;height:10px;border-radius:3px}
+.card{display:grid;grid-template-columns:132px 1fr;gap:14px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;align-items:center;width:100%}
+.card:hover{border-color:var(--accent)}
+.card canvas{width:132px;height:auto;aspect-ratio:16/10;border-radius:9px;display:block}
+.card .meta{min-width:0;display:flex;flex-direction:column;gap:4px}
+.card .date{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.card .t{font-family:var(--f-display);font-weight:700;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .ex{font-size:13px;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .dow{font-size:12px;text-align:center;color:var(--muted);font-weight:600}
+.cal .sun{color:var(--danger)}
+.day{aspect-ratio:1/1.1;border-radius:10px;background:var(--sunk);border:1px solid transparent;display:flex;flex-direction:column;align-items:center;padding:3px 2px;min-width:0;position:relative;font:inherit;color:inherit}
+.day .n{font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);align-self:flex-start;padding-left:4px;line-height:1.2}
+.day canvas{width:82%;max-width:60px;height:auto;aspect-ratio:1;margin-top:-2px}
+.day:not(.blank){cursor:pointer}
+.day.has{border-color:var(--line)}
+.day:not(.blank):hover{border-color:var(--accent)}
+.day.today{outline:2px solid var(--accent);outline-offset:-1px}
+.day.sel{border-color:var(--ink);border-width:2px}
+.day.blank{background:transparent}
+.day .cnt{position:absolute;top:3px;right:4px;font-size:10px;font-weight:600;background:var(--ink);color:var(--bg);border-radius:999px;min-width:16px;height:16px;line-height:16px;text-align:center}
+@media (prefers-reduced-motion:no-preference){.day.has:hover canvas{animation:boing .45s cubic-bezier(.3,1.6,.5,1)}}
+.month-top{display:flex;align-items:center;gap:12px;background:var(--sunk);border-radius:12px;padding:8px 12px}
+.month-top canvas{width:60px;height:60px}
+.month-top div{display:flex;flex-direction:column}
+.month-top b{font-family:var(--f-display);font-size:20px}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.mthumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--sunk);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;max-width:100%}
+.mthumb img,.mthumb video{width:100%;height:100%;object-fit:cover;display:block}
+.mthumb.click{cursor:pointer}
+.mph{font-size:12px;color:var(--muted);text-align:center;padding:6px}
+.mthumb .play{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.55);color:#FFFFFF;border-radius:999px;width:24px;height:24px;font-size:10px;display:flex;align-items:center;justify-content:center}
+.mthumb .mx{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#FFFFFF;font-size:16px;line-height:1}
+.viewer{position:fixed;inset:0;z-index:50;background:rgba(10,10,16,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.viewer img,.viewer video{max-width:100%;max-height:80vh;border-radius:10px}
+.cal-hint{font-size:12px;color:var(--muted)}
+.empty{text-align:center;padding:40px 16px;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center}
+.body-text{font-family:var(--f-display);font-size:17px;line-height:1.95;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}
+.notice{border:1px solid var(--line);background:var(--sunk);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.notice h3{font-size:16px}
+.notice ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.55}
+.notice li b{color:var(--ink)}
+.notice .soft{font-size:12px;color:var(--muted)}
+.notice ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.6}
+.notice ol li::marker{font-weight:700;color:var(--accent)}
+.help-toggle{display:flex;flex-direction:column;gap:12px}
+.help-toggle summary{cursor:pointer;font-weight:600;color:var(--accent);padding:4px 0}
+.help-toggle[open] summary{margin-bottom:12px}
+.help-toggle .notice+.notice{margin-top:12px}
+.confirm{border:1px solid var(--danger);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+@media (max-width:480px){.card{grid-template-columns:96px 1fr}.card canvas{width:96px}h1{font-size:24px}}
+@media (prefers-reduced-motion:no-preference){.boing{animation:boing .45s cubic-bezier(.3,1.6,.5,1)}@keyframes boing{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}.fade{animation:fade .35s ease}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+
+
+<!-- ============ 잠금 화면 ============ -->
+<section id="lockView" class="lock">
+  <div class="brand"><h1>마음 서랍</h1><span class="muted small">나만 여는 감정 일기</span></div>
+  <canvas id="lockArt" width="600" height="375" aria-hidden="true"></canvas>
+  <div id="noStorage" class="panel" hidden><p class="msg err">이 창에서는 브라우저 저장소를 쓸 수 없어요. 시크릿 창이거나 사이트 데이터가 막혀 있을 수 있어요. 일반 창에서 열어 주세요.</p></div>
+
+  <form id="setupForm" class="panel" hidden autocomplete="off">
+    <h2>처음 오셨네요</h2>
+    <p class="muted small">비밀번호로 일기를 암호화해서 이 기기의 브라우저 안에만 저장해요. 서버로 보내지 않아요.</p>
+    <div class="field"><label class="lbl" for="pw1">비밀번호 (6자 이상)</label><input id="pw1" type="password" minlength="6" required></div>
+    <div class="field"><label class="lbl" for="pw2">한 번 더</label><input id="pw2" type="password" required></div>
+    <label class="row small"><input id="pwAgree" type="checkbox" required> 비밀번호를 잊으면 누구도 일기를 되살릴 수 없다는 걸 알고 있어요.</label>
+    <p id="setupMsg" class="msg"></p>
+    <div class="row"><button class="btn primary" type="submit">일기장 만들기</button><button class="btn ghost" type="button" id="toImport1">백업에서 불러오기</button></div>
+  </form>
+
+  <form id="unlockForm" class="panel" hidden autocomplete="off">
+    <div class="field"><label class="lbl" for="pwIn">비밀번호</label><input id="pwIn" type="password" required autofocus></div>
+    <p id="unlockMsg" class="msg"></p>
+    <div class="row"><button class="btn primary" type="submit">열기</button><button class="btn ghost" type="button" id="forgotBtn">비밀번호를 잊었어요</button></div>
+    <div id="forgotBox" class="confirm" hidden>
+      <p class="small">비밀번호 없이는 열 수 없어요. 백업 코드가 있다면 그걸로 불러올 수 있고, 아니면 모든 기록을 지우고 새로 시작해야 해요. 지우려면 아래에 <b>모두 지우기</b>라고 적어 주세요.</p>
+      <input id="wipeText" type="text" placeholder="모두 지우기">
+      <div class="row"><button class="btn danger" type="button" id="wipeBtn">기록 모두 지우기</button><button class="btn ghost" type="button" id="toImport2">백업에서 불러오기</button></div>
+    </div>
+  </form>
+
+  <div id="importBoxLock" class="panel" hidden></div>
+  <details class="help-toggle"><summary>처음이세요? 사용법과 주의사항 보기</summary><div class="guide-slot"></div><div class="notice-slot"></div></details>
+</section>
+
+<!-- ============ 앱 ============ -->
+<div id="appView" class="wrap" hidden>
+  <header class="top">
+    <h1>마음 서랍</h1>
+    <div class="row">
+      <nav class="tabs" role="tablist">
+        <button role="tab" id="tab-write" aria-selected="true">쓰기</button>
+        <button role="tab" id="tab-list" aria-selected="false">기록</button>
+        <button role="tab" id="tab-vault" aria-selected="false">보관</button>
+        <button role="tab" id="tab-help" aria-selected="false">안내</button>
+      </nav>
+      <button class="btn" id="lockBtn" title="잠그기">잠그기</button>
+    </div>
+  </header>
+
+  <div id="firstNotice" class="notice" hidden><div class="row" style="justify-content:space-between"><h3>마음 서랍에 오신 걸 환영해요</h3><button class="btn ghost small" id="hideNotice">확인했어요</button></div><p class="small">처음이라면 <b>안내</b> 탭에서 사용법과 주의사항을 먼저 읽어 주세요. 비밀번호를 잊거나 브라우저 기록을 지우면 일기가 사라질 수 있어서, 가끔 <b>보관</b> 탭에서 백업해 두는 게 좋아요.</p></div>
+
+  <!-- 쓰기 -->
+  <section id="v-write" class="panel fade">
+    <div class="row" style="justify-content:space-between"><h2 id="writeTitle">오늘의 마음</h2><input id="eDate" type="date" style="width:auto"></div>
+    <canvas id="previewArt" class="art" width="600" height="375" aria-label="고른 감정으로 그려진 그림"></canvas>
+    <div class="row" style="justify-content:space-between"><span class="muted small">단어마다 표정과 몸짓이 달라요. 먼저 고른 세 단어가 그림에 나오고, 세기를 올리면 더 크게 움직여요.</span></div>
+
+    <div class="field">
+      <label class="lbl">지금 마음에 가장 가까운 단어 (최대 5개)</label>
+      <div id="chips" class="chips"></div>
+    </div>
+    <input id="search" type="text" placeholder="단어 검색 (예: 허전, 뿌듯)">
+    <div id="fams" class="fams"></div>
+    <div id="words" class="words"></div>
+
+    <div class="field">
+      <label class="lbl" for="intensity">얼마나 강했나요</label>
+      <input id="intensity" type="range" min="1" max="5" value="3">
+      <div class="scale"><span>살짝</span><span>보통</span><span>아주 강하게</span></div>
+    </div>
+    <div class="field"><label class="lbl" for="eTitle">한 줄 제목</label><input id="eTitle" type="text" maxlength="60" placeholder="오늘을 한 줄로 부른다면"></div>
+    <div class="field"><label class="lbl" for="eBody">무슨 일이 있었나요</label><textarea id="eBody" placeholder="그 감정이 들었던 순간, 몸에서 느껴진 것, 하고 싶었던 말…"></textarea></div>
+    <div class="field"><label class="lbl">사진·영상 (최대 10개, 영상은 50MB까지)</label><div id="mediaGrid" class="mgrid"></div>
+      <label class="btn" for="mediaIn" style="align-self:flex-start;margin-top:10px">사진·영상 넣기</label><input id="mediaIn" type="file" accept="image/*,video/*" multiple hidden></div>
+    <p id="saveMsg" class="msg"></p>
+    <div class="row"><button class="btn primary" id="saveBtn">서랍에 넣기</button><button class="btn ghost" id="cancelEdit" hidden>수정 취소</button></div>
+  </section>
+
+  <!-- 기록 -->
+  <section id="v-list" class="fade" hidden style="display:flex;flex-direction:column;gap:22px"></section>
+
+  <!-- 상세 -->
+  <section id="v-detail" class="panel fade" hidden></section>
+
+  <!-- 안내 -->
+  <section id="v-help" class="fade" hidden style="display:flex;flex-direction:column;gap:16px"><div class="guide-slot"></div><div class="notice-slot"></div></section>
+
+  <!-- 보관 -->
+  <section id="v-vault" class="fade" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel">
+      <h2>백업 코드</h2>
+      <p class="muted small">일기는 이 브라우저에만 있어요. 브라우저 데이터를 지우거나 기기를 바꾸면 사라지니, 가끔 백업 코드를 복사해 메모장 같은 곳에 저장해 두세요. 코드는 암호화돼 있어서 비밀번호 없이는 읽을 수 없어요. 사진·영상은 용량이 커서 백업 코드에 들어가지 않아요.</p>
+      <textarea id="backupOut" readonly style="min-height:90px;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+      <div class="row"><button class="btn primary" id="copyBackup">코드 복사</button><span id="copyMsg" class="msg ok"></span></div>
+    </div>
+    <div id="importBoxApp" class="panel"></div>
+    <form class="panel" id="pwChange" autocomplete="off">
+      <h2>비밀번호 바꾸기</h2>
+      <div class="field"><label class="lbl" for="pwOld">지금 비밀번호</label><input id="pwOld" type="password" required></div>
+      <div class="field"><label class="lbl" for="pwNew">새 비밀번호 (6자 이상)</label><input id="pwNew" type="password" minlength="6" required></div>
+      <p id="pwMsg" class="msg"></p>
+      <div class="row"><button class="btn" type="submit">바꾸기</button></div>
+    </form>
+    <p class="muted small">10분 동안 아무것도 안 하면 자동으로 잠겨요.</p>
+  </section>
+</div>
+
+<script>
+(()=>{
+/* ---------- 감정 단어 ---------- */
+const FAM = {
+ joy:{name:'기쁨',col:'#F2B53A',words:[['뿌듯한','해낸 일이 스스로 자랑스러운'],['설레는','곧 올 일에 마음이 두근거리는'],['벅찬','감정이 가슴에 가득 차오르는'],['홀가분한','짐을 내려놓은 듯 가벼운'],['흐뭇한','바라보며 미소가 번지는'],['들뜬','기대로 마음이 붕 떠 있는'],['짜릿한','순간 전율이 오는'],['개운한','막힌 게 풀려 상쾌한'],['감격스러운','마음 깊이 크게 감동한'],['신나는','흥이 나서 몸이 들썩이는'],['만족스러운','이만하면 됐다 싶은'],['통쾌한','속이 시원하게 뚫리는']]},
+ calm:{name:'평온',col:'#5FA883',words:[['편안한','긴장 없이 마음이 놓인'],['느긋한','서두를 것 없이 여유로운'],['차분한','마음이 가라앉아 고른'],['안도하는','걱정하던 일이 지나가 놓이는'],['포근한','감싸 안긴 듯 따뜻한'],['고요한','안팎이 조용히 잠잠한'],['담담한','크게 흔들리지 않고 덤덤한'],['아늑한','작고 안전한 곳에 있는 듯한'],['나른한','힘이 풀려 기분 좋게 늘어지는'],['충만한','부족함 없이 꽉 찬']]},
+ love:{name:'애정',col:'#E2809F',words:[['고마운','받은 마음에 갚고 싶은'],['애틋한','아끼는 마음에 안타까운'],['그리운','떠난 것이 다시 보고 싶은'],['다정한','따뜻하게 대하고 싶은'],['뭉클한','가슴이 찡하게 울리는'],['든든한','믿을 곳이 있어 마음이 놓이는'],['정겨운','오래 알던 것처럼 친근한'],['사랑스러운','귀엽고 아끼고 싶은'],['반가운','만나서 기쁜'],['연민','상대의 아픔이 내 일처럼 아픈']]},
+ sad:{name:'슬픔',col:'#5584CC',words:[['서운한','기대만큼 마음을 못 받은'],['허전한','있던 것이 빠져 빈 듯한'],['쓸쓸한','혼자인 게 차갑게 느껴지는'],['울적한','마음이 가라앉아 무거운'],['먹먹한','목이 메어 말이 안 나오는'],['아련한','희미하게 떠올라 아린'],['서글픈','처지가 안쓰러워 슬픈'],['공허한','속이 텅 빈'],['막막한','앞이 보이지 않는'],['상실감','소중한 것을 잃은'],['처량한','내 모습이 초라하고 가엾은'],['속상한','일이 틀어져 마음이 아픈']]},
+ anger:{name:'분노',col:'#D5493F',words:[['억울한','잘못 없이 탓을 받은'],['분한','당한 일이 원통하고 화나는'],['짜증나는','자꾸 거슬려 신경이 곤두서는'],['답답한','막혀서 숨이 꽉 막히는'],['괘씸한','예의 없는 태도에 화나는'],['약오르는','놀림받은 듯 은근히 화나는'],['언짢은','마음에 들지 않아 불쾌한'],['울컥한','감정이 갑자기 치밀어 오르는'],['배신감','믿었던 사람에게 등 돌림 당한'],['불공평한','나만 손해 보는 듯한'],['질투나는','남이 가진 게 탐나고 불편한']]},
+ anxiety:{name:'불안',col:'#8466C4',words:[['초조한','시간에 쫓겨 마음이 급한'],['조마조마한','잘못될까 가슴 졸이는'],['걱정스러운','앞일이 마음에 걸리는'],['막연한 불안','이유 없이 마음이 불편한'],['긴장된','몸과 마음이 굳어 있는'],['위축된','작아지고 움츠러든'],['두려운','다가올 일이 무서운'],['안절부절','가만히 있지 못하는'],['심란한','마음이 어수선하게 흩어진'],['압박감','짓눌리는 듯 무거운']]},
+ shame:{name:'부끄러움',col:'#DD8D5C',words:[['민망한','남 보기 낯 뜨거운'],['창피한','실수가 드러나 부끄러운'],['쑥스러운','칭찬이나 관심이 어색한'],['미안한','남에게 폐를 끼친 것 같은'],['죄책감','내 잘못이 무겁게 남은'],['후회되는','그때 다르게 했어야 했던'],['무안한','무시당한 듯 머쓱한'],['자괴감','스스로가 한심하게 느껴지는'],['머쓱한','어색해서 멋쩍은'],['열등감','남보다 못하다고 느끼는']]},
+ tired:{name:'지침',col:'#868E99',words:[['지친','기운이 다 빠진'],['무기력한','무엇도 할 힘이 없는'],['귀찮은','움직이기 싫은'],['멍한','생각이 멈춘 듯한'],['지루한','시간이 안 가는'],['맥빠진','기대가 꺾여 힘이 빠진'],['시큰둥한','별 관심이 가지 않는'],['무감각한','아무것도 느껴지지 않는'],['소진된','다 써버려 남은 게 없는'],['권태로운','같은 일상이 지겨운']]},
+ mixed:{name:'복잡',col:'#3A9DA3',words:[['싱숭생숭한','마음이 들떠 갈피를 못 잡는'],['착잡한','여러 생각이 얽혀 무거운'],['시원섭섭한','후련하면서도 아쉬운'],['뒤숭숭한','어수선하고 불안한'],['얼떨떨한','갑작스러워 정신이 없는'],['당황스러운','예상 밖이라 어쩔 줄 모르는'],['미묘한','딱 집어 말하기 어려운'],['아쉬운','조금 모자라 미련이 남는'],['씁쓸한','결과가 개운치 않은'],['양가감정','좋으면서도 싫은']]}
+};
+const WORD2FAM = {}; const WORD2DESC = {};
+for (const k in FAM) for (const [w,d] of FAM[k].words){WORD2FAM[w]=k;WORD2DESC[w]=d;}
+
+/* ---------- 유틸 ---------- */
+const $ = id => document.getElementById(id);
+const el = (tag, attrs={}, kids=[]) => {const e=document.createElement(tag);for(const k in attrs){if(k==='text')e.textContent=attrs[k];else if(k==='style')e.style.cssText=attrs[k];else e.setAttribute(k,attrs[k]);}for(const c of [].concat(kids))if(c)e.append(c);return e;};
+const today = () => {const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const fmtDate = s => {const [y,m,d]=s.split('-').map(Number);const wd='일월화수목금토'[new Date(y,m-1,d).getDay()];return `${m}월 ${d}일 (${wd})`;};
+const newSeed = () => (Math.random()*2**32)>>>0;
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- 저장소 ---------- */
+const KEY='maeum-seorap.vault';
+const store={
+  ok(){try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true}catch(e){return false}},
+  get(){try{return localStorage.getItem(KEY)}catch(e){return null}},
+  set(v){try{localStorage.setItem(KEY,v);return true}catch(e){return false}},
+  del(){try{localStorage.removeItem(KEY)}catch(e){}}
+};
+
+/* ---------- 암호화 (PBKDF2 + AES-GCM) ---------- */
+const te=new TextEncoder(), td=new TextDecoder();
+const toB64=u8=>{let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);};
+const fromB64=s=>{const b=atob(s);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
+async function deriveKey(pw,salt){
+  const base=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptVault(key,salt,obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,te.encode(JSON.stringify(obj))));
+  return JSON.stringify({app:'maeum-seorap',v:1,salt:toB64(salt),iv:toB64(iv),data:toB64(ct)});
+}
+async function openVault(str,pw){
+  const v=JSON.parse(str); if(!v||v.app!=='maeum-seorap')throw new Error('format');
+  const salt=fromB64(v.salt); const key=await deriveKey(pw,salt);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(v.iv)},key,fromB64(v.data));
+  return {key,salt,data:JSON.parse(td.decode(pt))};
+}
+
+/* ---------- 상태 ---------- */
+let S=null; // {key,salt,entries:[]}
+let draft=null;
+
+async function persist(){
+  const s=await encryptVault(S.key,S.salt,{entries:S.entries});
+  if(!store.set(s)) throw new Error('저장 공간에 쓸 수 없어요.');
+}
+
+/* ---------- 그림: 감정 캐릭터 ---------- */
+const INK='#2B2935';
+const hex2rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix=(h,w,t)=>{const a=hex2rgb(h),b=hex2rgb(w);return'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';};
+const reduceMotion=(()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}})();
+
+/* 단어별 표정: 눈 입 눈썹 소품 움직임 ('-' = 없음/기본) */
+const SPEC_SRC={
+ '뿌듯한':'happy smirk - sparkle+blush puff','설레는':'sparkle smile - thump+blush pulse','벅찬':'tearful big - sparkle swell','홀가분한':'closed smile - wind float',
+ '흐뭇한':'happy smile - blush sway','들뜬':'sparkle tongue - notes float','짜릿한':'wide grin - zap jitter','개운한':'closed open - sparkle breathe',
+ '감격스러운':'tearful wavy - tears+sparkle pulse','신나는':'happy big - notes hop','만족스러운':'closed w - blush sway','통쾌한':'squeeze big - burst bounce',
+ '편안한':'closed smile - - breathe','느긋한':'half smile - - sway','차분한':'line flat - - breathe','안도하는':'closed o - wind droop',
+ '포근한':'closed smile - blush+glow breathe','고요한':'closed none - - still','담담한':'dot flat - - still','아늑한':'happy w - blush breathe',
+ '나른한':'half tongue - zz melt','충만한':'happy smile - sparkle+glow swell',
+ '고마운':'happy smile - heart1+blush bow','애틋한':'tearful smile sad heart1 sway','그리운':'up wavy - thought sway','다정한':'closed smile - blush tilt',
+ '뭉클한':'tearful wavy - heart1 pulse','든든한':'dot grin - - puff','정겨운':'happy w - blush sway','사랑스러운':'heart open - hearts+blush pulse',
+ '반가운':'sparkle big - exclaim hop','연민':'csad wavy sad heart1 bow',
+ '서운한':'down pout sad - tilt','허전한':'dot flat - dotdot still','쓸쓸한':'half frown sad leaf sway','울적한':'half frown sad raincloud droop',
+ '먹먹한':'tearful tremble sad - pulse','아련한':'up smile - faint+sparkle float','서글픈':'tearful frown sad tear droop','공허한':'empty flat - - still',
+ '막막한':'dot o worried dotdot+sweat still','상실감':'csad frown sad tears droop','처량한':'tearful tremble sad raincloud shrink','속상한':'squeeze pout sad tear tilt',
+ '억울한':'tearful tremble angry tear shake','분한':'dot grit angry steam shake','짜증나는':'half wavy angry vein jitter','답답한':'squeeze tremble - scribble puff',
+ '괘씸한':'side frown angry vein still','약오르는':'squeeze pout - steam+blushred jitter','언짢은':'half frown flat - still','울컥한':'tearful tremble angry exclaim pulse',
+ '배신감':'wide bigO angry crack shake','불공평한':'uneven pout angry vein tilt','질투나는':'side pout angry steam tilt',
+ '초조한':'wide wavy worried sweat jitter','조마조마한':'squeeze tremble worried sweat shake','걱정스러운':'dot frown worried raincloud sway','막연한 불안':'wide flat worried fog jitter',
+ '긴장된':'wide grit - sweat shake','위축된':'down o worried - shrink','두려운':'tearful tremble worried sweat shake','안절부절':'wide wavy worried sweat dart',
+ '심란한':'spiral wavy - scribble sway','압박감':'squeeze grit - weight squash',
+ '민망한':'side wavy - blushlines+sweat tilt','창피한':'squeeze wavy - blushred shrink','쑥스러운':'happy smile - blushlines sway','미안한':'csad wavy sad sweat bow',
+ '죄책감':'down frown sad raincloud shrink','후회되는':'csad frown sad dotdot droop','무안한':'dot flat - sweat+dotdot still','자괴감':'half tremble sad raincloud droop',
+ '머쓱한':'side smirk - sweat+blush tilt','열등감':'down pout worried - shrink',
+ '지친':'half wavy - sweat melt','무기력한':'line flat - - melt','귀찮은':'half pout - dotdot melt','멍한':'dot o - dotdot still','지루한':'half bigO - zz sway',
+ '맥빠진':'half wavy sad - shrink','시큰둥한':'side flat - - still','무감각한':'empty flat - - still','소진된':'spiral tongue - smoke melt','권태로운':'half frown - zz sway',
+ '싱숭생숭한':'uneven wavy - notes+question float','착잡한':'half frown sad scribble still','시원섭섭한':'happy wavy - tear sway','뒤숭숭한':'wide wavy worried scribble jitter',
+ '얼떨떨한':'spiral bigO - dizzy spin','당황스러운':'wide bigO worried sweat+exclaim shake','미묘한':'uneven smirk - question tilt','아쉬운':'side pout sad - sway',
+ '씁쓸한':'half smirkdown - - still','양가감정':'uneven wavy - question+heart1 tilt',
+ neutral:'dot flat - - breathe'
+};
+const SPEC={};for(const w in SPEC_SRC){const [e,m,b,x,mo]=SPEC_SRC[w].split(' ');SPEC[w]={e,m,b,x:x==='-'?[]:x.split('+'),mo};}
+const FMO={joy:'bounce',calm:'breathe',love:'pulse',sad:'droop',anger:'shake',anxiety:'jitter',shame:'shrink',tired:'melt',mixed:'tilt'};
+
+function motion(mo,t,a){let dx=0,dy=0,sx=1,sy=1,rot=0;const S=Math.sin;
+  switch(mo){
+    case 'bounce':{const b=Math.abs(S(t*4));dy=-b*16*a;sy=1+(1-b)*.07*a;sx=1/sy;break;}
+    case 'hop':{const b=Math.abs(S(t*3.2));dy=-b*30*a;sy=1+(1-b)*.1*a;sx=1/sy;break;}
+    case 'sway':rot=S(t*1.3)*.08*a;break;
+    case 'breathe':sy=1+S(t*1.5)*.03;sx=1-S(t*1.5)*.02;break;
+    case 'pulse':{const p=Math.pow(Math.max(0,S(t*4)),8);sx=sy=1+p*.08*a;break;}
+    case 'shake':rot=S(t*32)*.025*a;sx=1.03;sy=.98;break;
+    case 'jitter':dx=S(t*7)*3*a;dy=S(t*13)*2*a;rot=S(t*9)*.035*a;break;
+    case 'dart':dx=S(t*3)*28*a;rot=S(t*6)*.05;break;
+    case 'droop':dy=S(t)*2;sy=.92;sx=1.06;break;
+    case 'tilt':rot=.12+S(t*1.3)*.03;break;
+    case 'shrink':sx=sy=.82+S(t*1.4)*.02;rot=-.06;break;
+    case 'float':dy=-14-S(t*1.5)*8*a;break;
+    case 'puff':sy=1.07+S(t*2)*.02;sx=1.03;break;
+    case 'swell':sx=sy=1+(S(t*1.2)*.5+.5)*.08*a;break;
+    case 'melt':sy=.82+S(t*.8)*.03;sx=1.15-S(t*.8)*.02;break;
+    case 'still':sy=1+S(t*.8)*.01;break;
+    case 'bow':rot=.18*Math.max(0,S(t*1.5));break;
+    case 'squash':sy=.8+S(t*2)*.02;sx=1.13;break;
+    case 'spin':rot=S(t*2)*.22;break;
+    default:sy=1+S(t*1.5)*.02;
+  }return{dx,dy,sx,sy,rot};}
+
+function heart(c,x,y,s){c.beginPath();c.moveTo(x,y+s*.35);c.bezierCurveTo(x,y-s*.3,x-s,y-s*.3,x-s,y+s*.25);c.bezierCurveTo(x-s,y+s*.7,x,y+s,x,y+s*1.25);c.bezierCurveTo(x,y+s,x+s,y+s*.7,x+s,y+s*.25);c.bezierCurveTo(x+s,y-s*.3,x,y-s*.3,x,y+s*.35);c.fill();}
+function drop(c,x,y,s,al){c.fillStyle=`rgba(110,170,235,${al})`;c.beginPath();c.moveTo(x,y-s*1.4);c.quadraticCurveTo(x+s,y,x,y+s);c.quadraticCurveTo(x-s,y,x,y-s*1.4);c.fill();}
+function star4(c,x,y,s){c.beginPath();c.moveTo(x,y-s);c.quadraticCurveTo(x,y,x+s,y);c.quadraticCurveTo(x,y,x,y+s);c.quadraticCurveTo(x,y,x-s,y);c.quadraticCurveTo(x,y,x,y-s);c.fill();}
+
+function eyes(c,type,rx,ry,t,ph){
+  const ex=rx*.34,ey=-ry*.98,er=rx*.075,PI=Math.PI,blink=((t*.7+ph)%4)<.12?.15:1;
+  const dot=(x,y,r)=>{c.fillStyle=INK;c.beginPath();c.ellipse(x,y,r,Math.max(.5,r*blink),0,0,7);c.fill();};
+  const white=(x,y,r,px,py)=>{c.fillStyle='#FFFFFF';c.beginPath();c.arc(x,y,r,0,7);c.fill();c.save();c.lineWidth*=.7;c.stroke();c.restore();if(px!==undefined){c.fillStyle=INK;c.beginPath();c.arc(x+px,y+py,r*.45,0,7);c.fill();}};
+  const shine=(x,y)=>{c.fillStyle='#FFFFFF';c.beginPath();c.arc(x-er*.4,y-er*.45,er*.45,0,7);c.fill();};
+  c.strokeStyle=INK;c.fillStyle=INK;
+  for(const s of [-1,1]){const x=s*ex,y=ey;
+    switch(type){
+      case 'dot':dot(x,y,er*1.05);break;
+      case 'sparkle':dot(x,y,er*1.35);if(blink===1)shine(x,y);break;
+      case 'tearful':dot(x,y,er*1.35);shine(x,y);c.beginPath();c.arc(x+er*.35,y+er*.4,er*.25,0,7);c.fill();
+        c.save();c.strokeStyle='rgba(110,170,235,.95)';c.lineWidth*=.8;c.beginPath();c.arc(x,y,er*1.8,PI*.2,PI*.8);c.stroke();c.restore();break;
+      case 'happy':c.beginPath();c.arc(x,y+er*1.3,er*1.6,PI*1.15,PI*1.85);c.stroke();break;
+      case 'closed':c.beginPath();c.arc(x,y-er*.8,er*1.5,PI*.18,PI*.82);c.stroke();break;
+      case 'csad':c.beginPath();c.moveTo(x-s*er*1.5,y-er*.4);c.lineTo(x+s*er*1.5,y+er*.5);c.stroke();break;
+      case 'heart':c.fillStyle='#E8456B';heart(c,x,y-er*1.4,er*1.6);break;
+      case 'wide':white(x,y,er*2,Math.sin(t*11)*er*.45,0);break;
+      case 'side':white(x,y,er*1.7,er*.8,er*.1);break;
+      case 'up':white(x,y,er*1.7,er*.5,-er*.7);break;
+      case 'down':dot(x,y+er*.9,er*.9);break;
+      case 'empty':white(x,y,er*1.7);break;
+      case 'squeeze':{const e=er*1.3;c.beginPath();c.moveTo(x+s*e,y-e);c.lineTo(x-s*e,y);c.lineTo(x+s*e,y+e);c.stroke();break;}
+      case 'half':c.beginPath();c.moveTo(x-er*1.5,y);c.lineTo(x+er*1.5,y);c.stroke();c.beginPath();c.arc(x,y,er*1.1,0,PI);c.fill();break;
+      case 'line':c.beginPath();c.moveTo(x-er*1.4,y);c.lineTo(x+er*1.4,y);c.stroke();break;
+      case 'spiral':{c.save();c.lineWidth*=.7;c.beginPath();for(let k=0;k<=40;k++){const a=k*.45+t*4*s,r=er*1.9*k/40;c.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}c.stroke();c.restore();break;}
+      case 'uneven':if(s<0)dot(x,y,er*1.1);else{c.beginPath();c.moveTo(x-er*1.4,y);c.lineTo(x+er*1.4,y);c.stroke();}break;
+    }}
+}
+
+function mouth(c,type,rx,ry,t){
+  const my=-ry*.64,PI=Math.PI;c.fillStyle=INK;c.strokeStyle=INK;
+  const D=(w,h)=>{c.beginPath();c.moveTo(-w,my-ry*.05);c.quadraticCurveTo(0,my+h,w,my-ry*.05);c.closePath();c.fill();};
+  const tongue=(x,y,w)=>{c.fillStyle='#F07A8C';c.beginPath();c.ellipse(x,y,w,w*.7,0,0,7);c.fill();};
+  switch(type){
+    case 'smile':c.beginPath();c.arc(0,my-ry*.1,rx*.11,PI*.2,PI*.8);c.stroke();break;
+    case 'open':D(rx*.15,ry*.26);break;
+    case 'big':D(rx*.22,ry*.44);tongue(0,my+ry*.1,rx*.08);break;
+    case 'tongue':D(rx*.14,ry*.24);tongue(rx*.04,my+ry*.07,rx*.055);break;
+    case 'grin':c.beginPath();c.arc(0,my-ry*.22,rx*.2,PI*.2,PI*.8);c.stroke();break;
+    case 'flat':c.beginPath();c.moveTo(-rx*.09,my);c.lineTo(rx*.09,my);c.stroke();break;
+    case 'frown':c.beginPath();c.arc(0,my+ry*.14,rx*.15,PI*1.22,PI*1.78);c.stroke();break;
+    case 'pout':c.beginPath();c.moveTo(-rx*.06,my+rx*.02);c.quadraticCurveTo(0,my-rx*.07,rx*.06,my+rx*.02);c.stroke();break;
+    case 'o':c.beginPath();c.arc(0,my+ry*.02,rx*.045,0,7);c.stroke();break;
+    case 'bigO':c.beginPath();c.ellipse(0,my+ry*.04,rx*.08,rx*.11,0,0,7);c.fill();break;
+    case 'wavy':c.beginPath();c.moveTo(-rx*.2,my);for(let k=0;k<4;k++){const x0=-rx*.2+k*rx*.1;c.quadraticCurveTo(x0+rx*.05,my+(k%2?rx*.06:-rx*.06),x0+rx*.1,my);}c.stroke();break;
+    case 'tremble':{c.beginPath();for(let i=0;i<=16;i++){const u=i/16;c.lineTo(-rx*.16+u*rx*.32,my+rx*.03-Math.sin(u*PI)*rx*.07+Math.sin(i*1.7+t*25)*rx*.014);}c.stroke();break;}
+    case 'w':c.beginPath();c.arc(-rx*.055,my-ry*.05,rx*.055,PI*.1,PI*.95);c.stroke();c.beginPath();c.arc(rx*.055,my-ry*.05,rx*.055,PI*.05,PI*.9);c.stroke();break;
+    case 'grit':{const w=rx*.17,h=rx*.1;c.fillStyle='#FFFFFF';c.beginPath();c.rect(-w,my-h/2,w*2,h);c.fill();c.save();c.lineWidth*=.6;c.stroke();c.beginPath();c.moveTo(-w,my);c.lineTo(w,my);for(let k=-1;k<=1;k++){c.moveTo(k*w/2,my-h/2);c.lineTo(k*w/2,my+h/2);}c.stroke();c.restore();break;}
+    case 'smirk':c.beginPath();c.moveTo(-rx*.1,my);c.quadraticCurveTo(rx*.04,my+rx*.05,rx*.13,my-rx*.06);c.stroke();break;
+    case 'smirkdown':c.beginPath();c.moveTo(-rx*.12,my-rx*.03);c.quadraticCurveTo(0,my-rx*.02,rx*.12,my+rx*.05);c.stroke();break;
+  }
+}
+
+function brows(c,type,rx,ry){
+  if(type==='-')return;const ex=rx*.34,ey=-ry*.98,er=rx*.075;c.strokeStyle=INK;
+  for(const s of [-1,1]){const x=s*ex;c.beginPath();
+    if(type==='sad'){c.moveTo(x-s*er*1.6,ey-er*3.3);c.lineTo(x+s*er*1.6,ey-er*2.4);}
+    else if(type==='angry'){c.moveTo(x-s*er*1.8,ey-er*1.9);c.lineTo(x+s*er*1.8,ey-er*3.4);}
+    else if(type==='worried'){c.moveTo(x-s*er*1.7,ey-er*3.6);c.quadraticCurveTo(x,ey-er*3.4,x+s*er*1.7,ey-er*2.7);}
+    else if(type==='flat'){c.moveTo(x-er*1.6,ey-er*2.6);c.lineTo(x+er*1.6,ey-er*2.6);}
+    c.stroke();}
+}
+
+function extras(c,list,rx,ry,t,ph){
+  const PI=Math.PI,ex=rx*.34,ey=-ry*.98,my=-ry*.64,er=rx*.075;
+  const rise=(sp,off)=>((t*sp+off)%1+1)%1;
+  const cheeks=al=>{c.fillStyle=`rgba(255,110,135,${al})`;for(const s of [-1,1]){c.beginPath();c.ellipse(s*rx*.56,my-ry*.04,rx*.13,rx*.075,0,0,7);c.fill();}};
+  const font=(px,w=700)=>`${w} ${Math.round(px)}px "IBM Plex Sans KR",sans-serif`;
+  for(const k of list){c.save();c.lineCap='round';c.lineJoin='round';c.lineWidth=Math.max(1.5,rx*.05);
+    switch(k){
+      case 'blush':cheeks(.5);break;
+      case 'blushred':cheeks(.85);break;
+      case 'blushlines':cheeks(.5);c.strokeStyle='rgba(220,70,95,.85)';c.lineWidth*=.7;for(const s of [-1,1])for(let i=0;i<3;i++){const x=s*rx*.56+(i-1)*rx*.07;c.beginPath();c.moveTo(x+rx*.025,my-ry*.1);c.lineTo(x-rx*.025,my+ry*.02);c.stroke();}break;
+      case 'sparkle':for(let i=0;i<4;i++){const a=i*1.7+ph,tw=.5+.5*Math.sin(t*3+i*2);c.fillStyle=`rgba(242,181,58,${.35+.65*tw})`;star4(c,Math.cos(a)*rx*1.2,-ry*.95+Math.sin(a)*ry*1.0,rx*.05+rx*.06*tw);}break;
+      case 'burst':for(let i=0;i<6;i++){const a=i/6*PI*2+t*.5,u=.5+.5*Math.sin(t*4+i);c.fillStyle=`rgba(242,181,58,${.5+.5*u})`;star4(c,Math.cos(a)*rx*1.25,-ry*.85+Math.sin(a)*ry*1.1,rx*.08*(.6+u*.6));}break;
+      case 'dizzy':for(let i=0;i<3;i++){const a=t*2.5+i*2.09;c.fillStyle='#F2B53A';star4(c,Math.cos(a)*rx*.55,-ry*1.95+Math.sin(a)*ry*.12,rx*.08);}break;
+      case 'glow':{const u=.5+.5*Math.sin(t*1.5);c.strokeStyle=`rgba(255,255,255,${.4+.35*u})`;c.lineWidth=rx*.07;c.beginPath();c.ellipse(0,-ry*.82,rx*1.2+u*4,ry*1.05+u*4,0,0,7);c.stroke();break;}
+      case 'hearts':for(let i=0;i<3;i++){const u=rise(.35,i/3);c.fillStyle=`rgba(232,69,107,${(1-u)*.9})`;heart(c,(i-1)*rx*.55+Math.sin(t*2+i)*6,-ry*1.95-u*ry*.7,rx*.11);}break;
+      case 'heart1':{const u=rise(.3,ph);c.fillStyle=`rgba(232,69,107,${(1-u)*.9})`;heart(c,rx*.7+Math.sin(t*2)*5,-ry*1.7-u*ry*.7,rx*.12);break;}
+      case 'thump':{const p=Math.pow(Math.max(0,Math.sin(t*4)),6);c.strokeStyle=`rgba(232,69,107,${.3+.7*p})`;c.beginPath();c.arc(0,-ry*.82,rx*1.08+p*6,PI*.85,PI*1.15);c.stroke();c.beginPath();c.arc(0,-ry*.82,rx*1.08+p*6,-PI*.15,PI*.15);c.stroke();break;}
+      case 'steam':case 'smoke':for(let i=0;i<4;i++){const s=i%2?1:-1,u=rise(1.1,i*.27);c.fillStyle=k==='steam'?`rgba(255,255,255,${(1-u)*.95})`:`rgba(110,114,125,${(1-u)*.55})`;c.beginPath();c.arc(s*rx*.62+s*u*10,-ry*1.85-u*ry*.5,rx*.07*(1+u),0,7);c.fill();}break;
+      case 'tear':{const u=rise(.5,ph);drop(c,ex+er*.3,ey+er*2.4+u*ry*.45,er*1.1,1-u);break;}
+      case 'tears':{c.strokeStyle='rgba(110,170,235,.85)';c.lineWidth=rx*.07;for(const s of [-1,1]){const l=ry*(.32+.07*Math.sin(t*3+s));c.beginPath();c.moveTo(s*ex,ey+er*1.6);c.lineTo(s*ex,ey+er*1.6+l);c.stroke();}break;}
+      case 'sweat':drop(c,rx*.8,-ry*1.42+Math.sin(t*3)*3,er*1.3,.95);break;
+      case 'zz':c.font=font(rx*.24);for(let i=0;i<2;i++){const u=rise(.3,i*.5);c.fillStyle=`rgba(43,41,53,${(1-u)*.85})`;c.fillText('z',rx*.62+u*rx*.35,-ry*1.75-u*ry*.6);}break;
+      case 'question':c.translate(rx*.75,-ry*1.85);c.rotate(Math.sin(t*1.6)*.25);c.font=font(rx*.32);c.fillStyle=INK;c.textAlign='center';c.fillText('?',0,0);break;
+      case 'exclaim':{const p=Math.abs(Math.sin(t*5));c.translate(-rx*.78,-ry*1.8-p*4);c.font=font(rx*.34,800);c.fillStyle=INK;c.textAlign='center';c.fillText('!',0,0);break;}
+      case 'notes':c.font=font(rx*.28);for(let i=0;i<2;i++){const u=rise(.4,i*.5);c.fillStyle=`rgba(43,41,53,${(1-u)*.85})`;c.fillText(i?'♫':'♪',(i?-1:1)*rx*.75+Math.sin(t*3+i)*5-rx*.08,-ry*1.6-u*ry*.7);}break;
+      case 'dotdot':{c.fillStyle=INK;const n=Math.floor(t*2.5)%4;for(let i=0;i<n;i++){c.beginPath();c.arc(rx*.55+i*rx*.15,-ry*1.95,rx*.035,0,7);c.fill();}break;}
+      case 'vein':{const p=1+.15*Math.sin(t*8),s=rx*.07;c.translate(rx*.55,-ry*1.45);c.scale(p,p);c.strokeStyle='#C8372E';c.lineWidth=rx*.045;for(const [a,b] of [[1,1],[-1,1],[1,-1],[-1,-1]]){c.beginPath();c.moveTo(a*s*.4,b*s*1.4);c.quadraticCurveTo(a*s*.4,b*s*.4,a*s*1.4,b*s*.4);c.stroke();}break;}
+      case 'raincloud':{const cx=Math.sin(t*.8)*8,cy=-ry*2.15;c.fillStyle='rgba(120,128,145,.85)';for(const [a,b,r] of [[-.25,0,.2],[0,-.08,.25],[.25,0,.2]]){c.beginPath();c.arc(cx+a*rx,cy+b*rx,r*rx,0,7);c.fill();}c.fillRect(cx-rx*.45,cy,rx*.9,rx*.18);
+        c.strokeStyle='rgba(110,170,235,.95)';for(let i=0;i<3;i++){const u=rise(1.2,i/3),x=cx+(i-1)*rx*.22,y=cy+rx*.26+u*ry*.35;c.globalAlpha=1-u;c.beginPath();c.moveTo(x,y);c.lineTo(x-2,y+rx*.08);c.stroke();}break;}
+      case 'wind':for(let i=0;i<2;i++){const u=rise(.6,i*.5),x=rx*.3+u*rx*.8,y=my-rx*.05+i*rx*.15;c.strokeStyle=`rgba(255,255,255,${1-u})`;c.beginPath();c.moveTo(x,y);c.bezierCurveTo(x+rx*.15,y-rx*.1,x+rx*.25,y+rx*.1,x+rx*.4,y);c.stroke();}break;
+      case 'leaf':{const u=rise(.25,ph),x=rx*(-1+u*2)*.9+Math.sin(t*2)*rx*.15,y=-ry*2.1+u*ry*2;c.translate(x,y);c.rotate(Math.sin(t*2)*.8);c.fillStyle=`rgba(221,141,92,${u<.9?1:(1-u)*10})`;c.beginPath();c.ellipse(0,0,rx*.11,rx*.05,0,0,7);c.fill();break;}
+      case 'fog':for(let i=0;i<3;i++){c.fillStyle='rgba(255,255,255,.6)';c.beginPath();c.ellipse(Math.sin(t*.6+i*2)*rx*.8,-ry*(1.95+i*.13),rx*.35,rx*.09,0,0,7);c.fill();}break;
+      case 'scribble':{c.strokeStyle='rgba(43,41,53,.7)';c.lineWidth=rx*.03;c.beginPath();for(let i=0;i<=30;i++){const a=i*.9+t*3,rr=rx*(.14+.1*Math.abs(Math.sin(i*12.99)));c.lineTo(Math.cos(a)*rr*1.6,-ry*2.05+Math.sin(a)*rr*.7);}c.stroke();break;}
+      case 'thought':{c.fillStyle='rgba(255,255,255,.95)';[[.55,-1.75,.05],[.72,-1.95,.08],[.95,-2.28,.2]].forEach(([a,b,r],i)=>{c.beginPath();c.arc(a*rx,b*ry+Math.sin(t*1.5+i)*2,r*rx,0,7);c.fill();});c.fillStyle='rgba(232,69,107,.85)';heart(c,.95*rx,-2.28*ry-rx*.08+Math.sin(t*1.5+2)*2,rx*.08);break;}
+      case 'zap':if(Math.sin(t*12)>0){c.fillStyle='#F2C230';for(const s of [-1,1]){c.save();c.translate(s*rx*1.08,-ry*1.3);c.scale(s,1);c.beginPath();c.moveTo(0,-rx*.2);c.lineTo(-rx*.1,0);c.lineTo(0,0);c.lineTo(-rx*.06,rx*.2);c.lineTo(rx*.1,-rx*.04);c.lineTo(0,-rx*.04);c.closePath();c.fill();c.restore();}}break;
+      case 'weight':{const w=rx*.5,h=rx*.3,y=-ry*1.78-h;c.fillStyle='rgba(43,41,53,.85)';c.beginPath();c.moveTo(-w*.7,y);c.lineTo(w*.7,y);c.lineTo(w,y+h);c.lineTo(-w,y+h);c.closePath();c.fill();c.fillStyle='#FFFFFF';c.font=font(h*.6);c.textAlign='center';c.fillText('100',0,y+h*.75);break;}
+    }
+    c.restore();}
+}
+
+function drawChar(c,word,x,G,size,t,a,ph,popE){
+  const sp=SPEC[word]||SPEC.neutral,fam=WORD2FAM[word],col=fam?FAM[fam].col:'#C3C7D3';
+  let {dx,dy,sx,sy,rot}=motion(sp.mo==='-'?FMO[fam]:sp.mo,t,a);
+  if(popE){sy*=1+popE*.2;sx*=1-popE*.12;dy-=popE*24;}
+  const rx=size,ry=size*.88;
+  c.fillStyle='rgba(40,30,60,.10)';c.beginPath();c.ellipse(x+dx,G+2,rx*.85*sx*Math.max(.5,1+dy/250),rx*.15,0,0,7);c.fill();
+  c.save();c.translate(x+dx,G+dy);c.rotate(rot);c.scale(sx,sy);
+  if(sp.x.includes('faint'))c.globalAlpha=.7;
+  c.fillStyle=col;c.beginPath();
+  for(let i=0;i<=48;i++){const th=i/48*Math.PI*2,w=1+.025*Math.sin(3*th+t*2+ph);let px=Math.cos(th)*rx*w,py=Math.sin(th)*ry*w;if(py>0)py*=.8;c.lineTo(px,py-ry*.8);}
+  c.closePath();c.fill();
+  c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.ellipse(-rx*.48,-ry*1.35,rx*.17,rx*.09,-.6,0,7);c.fill();
+  const lw=Math.max(1.6,rx*.065);c.lineWidth=lw;c.lineCap='round';c.lineJoin='round';
+  if(sp.x.includes('crack')){c.strokeStyle=INK;c.beginPath();c.moveTo(rx*.62,-ry*1.55);c.lineTo(rx*.5,-ry*1.35);c.lineTo(rx*.66,-ry*1.18);c.lineTo(rx*.55,-ry*.95);c.stroke();}
+  brows(c,sp.b,rx,ry);
+  c.lineWidth=lw;eyes(c,sp.e,rx,ry,t,ph);
+  c.lineWidth=lw;mouth(c,sp.m,rx,ry,t);
+  extras(c,sp.x,rx,ry,t,ph);
+  c.restore();
+}
+
+function drawArt(cv,words,intensity,seed,t=.6,popU=1){
+  const c=cv.getContext('2d'),W=600,H=375;c.setTransform(cv.width/W,0,0,cv.height/H,0,0);
+  const ws=[...new Set(words)].filter(w=>WORD2FAM[w]).slice(0,3);
+  const main=ws.length?FAM[WORD2FAM[ws[0]]].col:null;
+  c.fillStyle=main?mix(main,'#FFFFFF',.8):'#E6E8EF';c.fillRect(0,0,W,H);
+  c.fillStyle=main?mix(main,'#FFFFFF',.66):'#D7DAE4';c.fillRect(0,H*.84,W,H*.16);
+  const a=(intensity||3)/3,ph=((seed||0)%1000)/160,popE=popU<1?Math.sin(popU*Math.PI):0,G=H*.86;
+  if(!ws.length){drawChar(c,'neutral',W/2,G,84,t,.6,ph,popE);
+    c.fillStyle='rgba(70,74,95,.7)';c.font='500 17px "IBM Plex Sans KR",sans-serif';c.textAlign='center';c.fillText('감정을 고르면 표정이 생겨요',W/2,52);return;}
+  const slots=ws.length===1?[[W/2,104]]:ws.length===2?[[W*.4,96],[W*.75,64]]:[[W/2,94],[W*.18,60],[W*.82,60]];
+  ws.map((w,i)=>({w,i})).reverse().forEach(({w,i})=>drawChar(c,w,slots[i][0],G,slots[i][1],t+i*.7,a,ph+i,popE));
+}
+function drawMini(cv,word,size=28){const c=cv.getContext('2d');c.setTransform(cv.width/100,0,0,cv.height/100,0,0);c.clearRect(0,0,100,100);drawChar(c,word,50,size>28?94:90,size,.6,1,0,0);}
+
+/* 움직이는 그림 */
+const live=new Set();
+function frame(cv,ts){const s=cv._get();const u=cv._popAt?Math.min(1,(ts-cv._popAt)/600):1;drawArt(cv,s.words,s.intensity,s.seed,reduceMotion?.6:ts/1000,reduceMotion?1:u);}
+function animate(cv,get){cv._get=get;live.add(cv);frame(cv,performance.now());}
+function loop(ts){for(const cv of live){if(!cv.isConnected){live.delete(cv);continue;}if(!cv.getClientRects().length)continue;frame(cv,ts);}requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+
+/* ---------- 잠금 ---------- */
+function showLock(){
+  $('appView').hidden=true;$('lockView').hidden=false;
+  if(!store.ok()){$('noStorage').hidden=false;$('setupForm').hidden=true;$('unlockForm').hidden=true;return;}
+  const has=!!store.get();$('setupForm').hidden=has;$('unlockForm').hidden=!has;$('forgotBox').hidden=true;$('importBoxLock').hidden=true;
+  $('pwIn').value='';$('unlockMsg').textContent='';
+  if(has)setTimeout(()=>$('pwIn').focus(),50);
+}
+function lockNow(){S=null;draft=null;pending.clear();clearUrls();document.querySelectorAll('.viewer').forEach(v=>v.remove());showLock();}
+
+$('setupForm').addEventListener('submit',async e=>{e.preventDefault();const m=$('setupMsg');m.className='msg err';
+  const a=$('pw1').value,b=$('pw2').value;if(a.length<6){m.textContent='비밀번호는 6자 이상이어야 해요.';return;}if(a!==b){m.textContent='두 비밀번호가 달라요.';return;}
+  m.className='msg';m.textContent='일기장을 만드는 중…';
+  const salt=crypto.getRandomValues(new Uint8Array(16));S={key:await deriveKey(a,salt),salt,entries:[]};
+  try{await persist();$('pw1').value=$('pw2').value='';enterApp();}catch(err){m.className='msg err';m.textContent=err.message;}
+});
+$('unlockForm').addEventListener('submit',async e=>{e.preventDefault();const m=$('unlockMsg');m.className='msg';m.textContent='여는 중…';
+  try{const o=await openVault(store.get(),$('pwIn').value);S={key:o.key,salt:o.salt,entries:o.data.entries||[]};$('pwIn').value='';enterApp();}
+  catch(err){m.className='msg err';m.textContent='비밀번호가 맞지 않아요.';$('pwIn').select();}
+});
+$('forgotBtn').onclick=()=>{$('forgotBox').hidden=!$('forgotBox').hidden;};
+$('wipeBtn').onclick=()=>{if($('wipeText').value.trim()!=='모두 지우기'){$('wipeText').focus();return;}store.del();idb.clear().catch(()=>{});$('wipeText').value='';showLock();};
+const openLockImport=()=>{const b=$('importBoxLock');b.hidden=false;buildImport(b,true);b.scrollIntoView({behavior:'smooth',block:'nearest'});};
+$('toImport1').onclick=openLockImport;$('toImport2').onclick=openLockImport;
+
+/* ---------- 백업 불러오기 ---------- */
+function buildImport(box,fromLock){
+  box.replaceChildren();
+  const ta=el('textarea',{id:fromLock?'impTextL':'impTextA',placeholder:'백업 코드를 붙여 넣으세요',style:'min-height:80px;font-family:ui-monospace,monospace;font-size:12px'});
+  const file=el('input',{type:'file',accept:'.txt,.json,text/plain',id:fromLock?'impFileL':'impFileA'});
+  const pw=el('input',{type:'password',placeholder:'그 백업을 만들 때 쓰던 비밀번호',id:fromLock?'impPwL':'impPwA'});
+  const msg=el('p',{class:'msg'});const btn=el('button',{class:'btn primary',type:'button',text:'불러오기'});
+  file.onchange=()=>{const f=file.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{ta.value=String(rd.result).trim();};rd.readAsText(f);};
+  btn.onclick=async()=>{msg.className='msg';msg.textContent='확인하는 중…';
+    try{const code=ta.value.trim();const o=await openVault(code,pw.value);
+      if(!store.set(code))throw new Error('저장 공간에 쓸 수 없어요.');
+      S={key:o.key,salt:o.salt,entries:o.data.entries||[]};clearUrls();gcMedia();enterApp();
+    }catch(err){msg.className='msg err';msg.textContent=err.message==='저장 공간에 쓸 수 없어요.'?err.message:'코드가 올바르지 않거나 비밀번호가 맞지 않아요.';}};
+  box.append(el('h2',{text:'백업에서 불러오기'}),
+    el('p',{class:'muted small',text:fromLock?'다른 기기에서 복사한 백업 코드로 일기장을 옮겨 와요.':'불러오면 지금 이 기기의 기록이 백업 내용으로 바뀌어요. 먼저 지금 코드를 복사해 두세요. 비밀번호도 백업의 비밀번호로 바뀌어요.'}),
+    ta,el('div',{class:'field'},[el('label',{class:'lbl',text:'또는 텍스트 파일 고르기'}),file]),pw,msg,el('div',{class:'row'},[btn]));
+}
+
+/* ---------- 주의 안내 ---------- */
+const GUIDE=`<h3>마음 서랍 사용법</h3>
+<p class="small">하루를 마치며 5분, 오늘 내 마음에 이름을 붙여 주는 일기장이에요.</p>
+<ol>
+<li><b>비밀번호 만들기</b><br>처음 한 번만 정하면 돼요. 이 비밀번호가 일기장의 열쇠예요.</li>
+<li><b>감정 단어 고르기</b><br>'쓰기'에서 기쁨, 평온, 슬픔 같은 분류를 눌러 보고, 지금 마음에 가장 가까운 단어를 5개까지 골라요. 단어마다 짧은 뜻풀이가 있어서 헷갈릴 때 도움이 돼요. 검색창에 '허전'처럼 적어서 찾아도 돼요.</li>
+<li><b>세기 정하기</b><br>살짝부터 아주 강하게까지 골라요. 세기가 클수록 캐릭터가 더 크게 움직여요.</li>
+<li><b>이야기 적기</b><br>한 줄 제목과 그날 있었던 일을 편하게 적어요. 사진이나 짧은 영상도 10개까지 함께 넣을 수 있어요.</li>
+<li><b>서랍에 넣기</b><br>저장하면 고른 감정의 캐릭터가 일기와 함께 담겨요.</li>
+<li><b>달력으로 돌아보기</b><br>'기록'의 달력에 날마다 가장 많이 고른 감정 캐릭터가 나타나요. 빈 날짜를 누르면 그날 일기를 바로 쓸 수 있어서, 지난 날을 채워 넣기도 좋아요.</li>
+<li><b>다 쓰면 잠그기</b><br>오른쪽 위 '잠그기'를 눌러 서랍을 닫아 주세요.</li>
+</ol>
+<p class="soft">딱 맞는 단어가 없어도 괜찮아요. 가장 가까운 걸 고르고, 나머지는 글로 풀어 보세요. 하루에 여러 번 써도 돼요.</p>`;
+const NOTICE=`<h3>꼭 알아 두세요</h3>
+<p class="small">마음 서랍은 서버 없이 여러분 기기 안에서만 움직여요. 그래서 누구도 몰래 볼 수 없지만, 그만큼 몇 가지는 직접 챙겨 주셔야 해요.</p>
+<ul>
+<li><b>비밀번호는 꼭 기억해 주세요.</b> 일기를 비밀번호로 잠가 두기 때문에, 잊어버리면 만든 사람도 열어 드릴 수 없어요. 잊지 않을 곳에 따로 적어 두는 걸 추천해요.</li>
+<li><b>일기는 지금 쓰는 기기와 브라우저 안에만 있어요.</b> 브라우저의 방문 기록이나 사이트 데이터를 지우면, 또는 시크릿(비공개) 창에서 쓰면 일기가 사라질 수 있어요. 휴대폰과 컴퓨터의 일기장도 서로 따로예요.</li>
+<li><b>가끔 백업해 주세요.</b> '보관' 탭에서 백업 코드를 복사해 메모 앱 같은 곳에 붙여 두면, 기기를 바꿔도 '백업에서 불러오기'로 그대로 옮길 수 있어요. 백업 코드도 암호화돼 있어서 비밀번호 없이는 아무도 읽을 수 없어요.</li>
+<li><b>사진·영상은 백업 코드에 들어가지 않아요.</b> 용량이 커서 이 기기에만 보관돼요. 소중한 원본은 사진첩에 따로 남겨 두세요.</li>
+<li><b>여럿이 함께 쓰는 컴퓨터에서는 쓰지 않는 게 좋아요.</b> 다 쓰면 '잠그기'를 눌러 주세요. 10분 동안 아무것도 하지 않으면 저절로 잠겨요.</li>
+<li><b>비밀번호는 다른 곳에서 쓰지 않는 것으로 정해 주세요.</b> 생일이나 전화번호처럼 남이 짐작하기 쉬운 건 피해 주세요.</li>
+</ul>
+<p class="soft">마음 서랍은 내 마음을 돌아보는 작은 도구예요. 힘든 마음이 오래 이어진다면 혼자 견디지 말고, 믿을 수 있는 사람이나 전문가에게 털어놓아도 괜찮아요.</p>`;
+document.querySelectorAll('.guide-slot').forEach(n=>{n.className='notice guide';n.innerHTML=GUIDE;});
+document.querySelectorAll('.notice-slot').forEach(n=>{n.className='notice';n.innerHTML=NOTICE;});
+const NKEY='maeum-seorap.noticeSeen';
+$('hideNotice').onclick=()=>{$('firstNotice').hidden=true;try{localStorage.setItem(NKEY,'1')}catch(e){}};
+
+/* ---------- 앱 ---------- */
+function enterApp(){$('lockView').hidden=true;$('appView').hidden=false;let seen=false;try{seen=!!localStorage.getItem(NKEY)}catch(e){}$('firstNotice').hidden=seen;try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}resetDraft();showTab('write');armIdle();}
+function showTab(t){
+  for(const k of ['write','list','vault','help'])$('tab-'+k).setAttribute('aria-selected',String(k===t));
+  $('v-write').hidden=t!=='write';$('v-list').hidden=t!=='list';$('v-vault').hidden=t!=='vault';$('v-help').hidden=t!=='help';$('v-detail').hidden=true;
+  if(t==='list')renderList();if(t==='vault')renderVault();if(t==='write')renderPicker();
+  window.scrollTo({top:0});
+}
+$('tab-write').onclick=()=>showTab('write');$('tab-list').onclick=()=>showTab('list');$('tab-vault').onclick=()=>showTab('vault');$('tab-help').onclick=()=>showTab('help');
+$('lockBtn').onclick=lockNow;
+
+/* ---------- 사진·영상 (암호화해서 IndexedDB에 보관) ---------- */
+const idb={db:null,
+  open(){return new Promise((res,rej)=>{if(this.db)return res(this.db);let r;try{r=indexedDB.open('maeum-seorap',1);}catch(e){rej(e);return;}
+    r.onupgradeneeded=()=>{r.result.createObjectStore('media');};r.onsuccess=()=>{this.db=r.result;res(this.db);};r.onerror=()=>rej(r.error);});},
+  async run(mode,fn){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction('media',mode),req=fn(t.objectStore('media'));t.oncomplete=()=>res(req?req.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('abort'));});},
+  put(k,v){return this.run('readwrite',s=>s.put(v,k));},
+  get(k){return this.run('readonly',s=>s.get(k));},
+  del(k){return this.run('readwrite',s=>s.delete(k));},
+  clear(){return this.run('readwrite',s=>s.clear());},
+  keys(){return this.run('readonly',s=>s.getAllKeys());}
+};
+async function encBytes(key,buf){const iv=crypto.getRandomValues(new Uint8Array(12));return{iv,data:await crypto.subtle.encrypt({name:'AES-GCM',iv},key,buf)};}
+async function decBytes(key,rec){return crypto.subtle.decrypt({name:'AES-GCM',iv:rec.iv},key,rec.data);}
+const MAX_VIDEO=50*1024*1024,MAX_ITEMS=10;
+const pending=new Map(); // 아직 저장 안 한 파일
+const urlCache=new Map();
+function dropUrl(id){const u=urlCache.get(id);if(u){URL.revokeObjectURL(u);urlCache.delete(id);}}
+function clearUrls(){urlCache.forEach(u=>URL.revokeObjectURL(u));urlCache.clear();}
+async function mediaURL(m){
+  if(urlCache.has(m.id))return urlCache.get(m.id);
+  let blob=pending.get(m.id);
+  if(!blob){if(!S)return null;const rec=await idb.get(m.id).catch(()=>null);if(!rec)return null;try{blob=new Blob([await decBytes(S.key,rec)],{type:m.type});}catch(e){return null;}}
+  const u=URL.createObjectURL(blob);urlCache.set(m.id,u);return u;
+}
+async function shrinkImage(file){
+  try{const bmp=await createImageBitmap(file);const sc=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+    const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+    const b=await new Promise(r=>cv.toBlob(r,'image/jpeg',.86));if(b)return b;}catch(e){}
+  return file.size<=15*1024*1024?file:null;
+}
+async function gcMedia(){try{const used=new Set();S.entries.forEach(e=>(e.media||[]).forEach(m=>used.add(m.id)));for(const k of await idb.keys())if(!used.has(k))await idb.del(k);}catch(e){}}
+function mediaThumb(m,onRemove){
+  const box=el('div',{class:'mthumb'});const ph=el('span',{class:'mph',text:m.kind==='video'?'영상':'사진'});box.append(ph);
+  mediaURL(m).then(u=>{if(!u){ph.textContent='이 기기에 없는 '+(m.kind==='video'?'영상':'사진');return;}
+    const node=m.kind==='video'?el('video',{src:u,muted:'',playsinline:'',preload:'metadata'}):el('img',{src:u,alt:m.name||'사진'});
+    box.prepend(node);ph.remove();if(m.kind==='video')box.append(el('span',{class:'play','aria-hidden':'true',text:'▶'}));
+    box.classList.add('click');box.tabIndex=0;box.onclick=()=>openViewer(m,u);box.onkeydown=ev=>{if(ev.key==='Enter')openViewer(m,u);};});
+  if(onRemove){const x=el('button',{type:'button',class:'mx','aria-label':'빼기',text:'×'});x.onclick=ev=>{ev.stopPropagation();onRemove();};box.append(x);}
+  return box;
+}
+function openViewer(m,u){const ov=el('div',{class:'viewer',role:'dialog','aria-label':'크게 보기'});
+  const close=el('button',{class:'btn',type:'button',text:'닫기'});
+  const node=m.kind==='video'?el('video',{src:u,controls:'',autoplay:'',playsinline:''}):el('img',{src:u,alt:m.name||'사진'});
+  const done=()=>{ov.remove();document.removeEventListener('keydown',esc);};const esc=ev=>{if(ev.key==='Escape')done();};
+  ov.append(node,close);close.onclick=done;ov.onclick=ev=>{if(ev.target===ov)done();};document.addEventListener('keydown',esc);document.body.append(ov);close.focus();}
+function renderMediaEdit(){const g=$('mediaGrid');g.replaceChildren();
+  (draft.media||[]).forEach(m=>g.append(mediaThumb(m,()=>{draft.media=draft.media.filter(x=>x.id!==m.id);if(pending.has(m.id)){pending.delete(m.id);dropUrl(m.id);}renderMediaEdit();})));
+  if(!draft.media.length)g.append(el('span',{class:'muted small',style:'grid-column:1/-1',text:'그날의 사진이나 짧은 영상을 함께 넣을 수 있어요.'}));}
+$('mediaIn').onchange=async()=>{const files=[...$('mediaIn').files];$('mediaIn').value='';const msg=$('saveMsg');msg.className='msg';msg.textContent='';
+  for(const f of files){
+    if(draft.media.length>=MAX_ITEMS){msg.className='msg err';msg.textContent='사진·영상은 한 일기에 10개까지 넣을 수 있어요.';break;}
+    const isV=f.type.startsWith('video/'),isI=f.type.startsWith('image/');if(!isV&&!isI)continue;
+    if(isV&&f.size>MAX_VIDEO){msg.className='msg err';msg.textContent=`${f.name}: 영상은 50MB까지 넣을 수 있어요.`;continue;}
+    const blob=isV?f:await shrinkImage(f);if(!blob){msg.className='msg err';msg.textContent=`${f.name}: 이 사진은 읽을 수 없어요.`;continue;}
+    const id='m_'+uid();pending.set(id,blob);draft.media.push({id,kind:isV?'video':'image',type:blob.type||f.type,name:f.name});}
+  renderMediaEdit();};
+
+/* 쓰기 */
+let curFam='joy',lastPicked=null;
+function resetDraft(entry){
+  pending.forEach((b,id)=>dropUrl(id));pending.clear();
+  draft=entry?{...entry,emotions:[...entry.emotions],media:[...(entry.media||[])]}:{id:null,date:today(),emotions:[],intensity:3,title:'',body:'',seed:newSeed(),media:[]};
+  $('eDate').value=draft.date;$('intensity').value=draft.intensity;$('eTitle').value=draft.title;$('eBody').value=draft.body;$('search').value='';
+  setWriteTitle();$('saveBtn').textContent=entry?'고친 내용 저장':'서랍에 넣기';$('cancelEdit').hidden=!entry;$('saveMsg').textContent='';
+  renderPicker();renderMediaEdit();
+}
+function setWriteTitle(){$('writeTitle').textContent=draft.id?'기록 고치기':(draft.date===today()?'오늘의 마음':fmtDate(draft.date)+'의 마음');}
+function writeOn(date){if(!draft||draft.id||(!draft.body&&!draft.title&&!draft.emotions.length&&!draft.media.length))resetDraft();draft.date=date;$('eDate').value=date;setWriteTitle();showTab('write');}
+$('eDate').onchange=()=>{draft.date=$('eDate').value||today();setWriteTitle();};
+function renderPicker(){
+  if(!draft)return;
+  const chips=$('chips');chips.replaceChildren();
+  if(!draft.emotions.length)chips.append(el('span',{class:'muted small',text:'아직 고른 단어가 없어요'}));
+  draft.emotions.forEach(w=>{const x=el('button',{type:'button','aria-label':w+' 빼기',text:'×'});x.onclick=()=>{draft.emotions=draft.emotions.filter(v=>v!==w);$('previewArt')._popAt=performance.now();renderPicker();};
+    chips.append(el('span',{class:'chip'+(w===lastPicked?' boing':'')},[el('i',{style:'background:'+FAM[WORD2FAM[w]].col}),w,x]));});
+  const fams=$('fams');fams.replaceChildren();
+  const q=$('search').value.trim();
+  for(const k in FAM){const b=el('button',{type:'button',class:'fam','aria-pressed':String(!q&&k===curFam)},[el('span',{class:'dot',style:'background:'+FAM[k].col}),FAM[k].name]);
+    b.onclick=()=>{curFam=k;$('search').value='';renderPicker();};fams.append(b);}
+  const words=$('words');words.replaceChildren();
+  let list=[];if(q){for(const k in FAM)for(const [w,d] of FAM[k].words)if(w.includes(q)||d.includes(q))list.push([w,d,k]);}else list=FAM[curFam].words.map(([w,d])=>[w,d,curFam]);
+  if(!list.length)words.append(el('p',{class:'muted small',text:'맞는 단어가 없어요. 다른 말로 찾아보세요.'}));
+  list.forEach(([w,d,k])=>{const on=draft.emotions.includes(w);const b=el('button',{type:'button',class:'word'+(w===lastPicked?' boing':''),'aria-pressed':String(on),style:'border-left-color:'+FAM[k].col},[el('canvas',{width:88,height:88,'aria-hidden':'true'}),el('div',{},[el('b',{text:w}),el('span',{text:d})])]);drawMini(b.firstChild,w);
+    b.onclick=()=>{if(on)draft.emotions=draft.emotions.filter(v=>v!==w);else{if(draft.emotions.length>=5){$('saveMsg').className='msg err';$('saveMsg').textContent='단어는 5개까지 고를 수 있어요.';return;}draft.emotions.push(w);lastPicked=w;}$('previewArt')._popAt=performance.now();$('saveMsg').textContent='';renderPicker();};
+    words.append(b);});
+  lastPicked=null;
+}
+$('search').oninput=renderPicker;
+$('intensity').oninput=e=>{draft.intensity=+e.target.value;};
+$('cancelEdit').onclick=()=>{const id=draft.id;resetDraft();openDetail(id);};
+$('saveBtn').onclick=async()=>{const m=$('saveMsg');
+  draft.date=$('eDate').value||today();draft.title=$('eTitle').value.trim();draft.body=$('eBody').value;
+  if(!draft.emotions.length){m.className='msg err';m.textContent='감정 단어를 하나 이상 골라 주세요.';return;}
+  const isNew=!draft.id;const entry={...draft,id:draft.id||uid(),updated:Date.now()};if(isNew)entry.created=Date.now();
+  const orig=S.entries.find(e=>e.id===entry.id);const removed=((orig&&orig.media)||[]).filter(x=>!entry.media.some(y=>y.id===x.id));
+  m.className='msg';m.textContent='저장하는 중…';$('saveBtn').disabled=true;
+  try{for(const md of entry.media){const b=pending.get(md.id);if(b)await idb.put(md.id,await encBytes(S.key,await b.arrayBuffer()));}}
+  catch(err){$('saveBtn').disabled=false;m.className='msg err';m.textContent='사진·영상을 저장할 공간이 부족해요. 몇 개를 빼고 다시 해 보세요.';return;}
+  const before=S.entries;S.entries=isNew?[entry,...S.entries]:S.entries.map(e=>e.id===entry.id?entry:e);
+  try{await persist();entry.media.forEach(md=>pending.delete(md.id));for(const r of removed){dropUrl(r.id);idb.del(r.id).catch(()=>{});}$('saveBtn').disabled=false;resetDraft();openDetail(entry.id);}
+  catch(err){S.entries=before;$('saveBtn').disabled=false;m.className='msg err';m.textContent=err.message;}
+};
+
+/* 기록 */
+function sorted(){return [...S.entries].sort((a,b)=>b.date.localeCompare(a.date)||(b.created||0)-(a.created||0));}
+let calMonth=null,calDay=null;
+function topWord(list){const cnt={},order=[];list.forEach(e=>e.emotions.forEach(w=>{if(!(w in cnt)){cnt[w]=0;order.push(w);}cnt[w]++;}));
+  let best=null;order.forEach(w=>{if(best===null||cnt[w]>cnt[best])best=w;});return best?{w:best,n:cnt[best]}:null;}
+function makeCard(e){const cv=el('canvas',{width:300,height:188});drawArt(cv,e.emotions,e.intensity,e.seed);
+  const card=el('button',{class:'card',type:'button'},[cv,el('div',{class:'meta'},[el('span',{class:'date',text:fmtDate(e.date)+((e.media||[]).length?` · 사진·영상 ${e.media.length}`:'')}),el('span',{class:'t',text:e.title||e.emotions.join(' · ')}),
+    el('div',{class:'chips',style:'min-height:0'},e.emotions.map(w=>el('span',{class:'chip',style:'font-size:12px;padding:1px 8px'},[el('i',{style:'background:'+FAM[WORD2FAM[w]].col}),w]))),
+    e.body?el('span',{class:'ex',text:e.body}):null])]);
+  card.onclick=()=>openDetail(e.id);return card;}
+function renderList(){
+  const v=$('v-list');v.replaceChildren();
+  if(!calMonth)calMonth=today().slice(0,7);
+  const [y,m]=calMonth.split('-').map(Number);
+  const monthList=sorted().filter(e=>e.date.startsWith(calMonth));
+  const byDay={};monthList.forEach(e=>{(byDay[e.date]=byDay[e.date]||[]).push(e);});
+  const go=d=>{const dt=new Date(y,m-1+d,1);calMonth=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');calDay=null;renderList();};
+  const prev=el('button',{class:'btn ghost',type:'button','aria-label':'지난달',text:'‹'}),next=el('button',{class:'btn ghost',type:'button','aria-label':'다음 달',text:'›'});
+  prev.onclick=()=>go(-1);next.onclick=()=>go(1);
+  const thisM=el('button',{class:'btn ghost small',type:'button',text:'이번 달'});thisM.onclick=()=>{calMonth=today().slice(0,7);calDay=null;renderList();};
+  const panel=el('div',{class:'panel'});
+  panel.append(el('div',{class:'row',style:'justify-content:space-between'},[el('div',{class:'row',style:'gap:2px'},[prev,el('h2',{text:`${y}년 ${m}월`}),next]),thisM]));
+  // 이번 달 대표 감정
+  const top=topWord(monthList);
+  if(top){const mc=el('canvas',{width:120,height:120,class:'cal-top'});drawMini(mc,top.w);
+    panel.append(el('div',{class:'month-top'},[mc,el('div',{},[el('span',{class:'muted small',text:'이번 달 가장 많이 고른 마음'}),el('b',{text:top.w}),el('span',{class:'muted small',text:`${top.n}번 · 일기 ${monthList.length}편`})])]));}
+  // 달력
+  const grid=el('div',{class:'cal'});'일월화수목금토'.split('').forEach((d,i)=>grid.append(el('div',{class:'dow'+(i===0?' sun':''),text:d})));
+  const first=new Date(y,m-1,1).getDay(),days=new Date(y,m,0).getDate(),td=today();
+  for(let i=0;i<first;i++)grid.append(el('div',{class:'day blank'}));
+  for(let d=1;d<=days;d++){const key=`${calMonth}-${String(d).padStart(2,'0')}`,list=byDay[key];
+    const wd=(first+d-1)%7;const cell=el('button',{type:'button',class:'day'+(list?' has':'')+(key===td?' today':'')+(key===calDay?' sel':''),'aria-label':`${fmtDate(key)}, 새 일기 쓰기`},[el('span',{class:'n'+(wd===0?' sun':''),text:d})]);
+    if(!list)cell.onclick=()=>writeOn(key);
+    if(list){const t=topWord(list);const col=FAM[WORD2FAM[t.w]].col;cell.style.background=`rgba(${hex2rgb(col).join(',')},.16)`;
+      const cv=el('canvas',{width:112,height:112});drawMini(cv,t.w,38);cell.append(cv);
+      cell.title=`${fmtDate(key)} · ${t.w}`;cell.setAttribute('aria-label',`${fmtDate(key)}, ${t.w}, 일기 ${list.length}편`);
+      if(list.length>1)cell.append(el('span',{class:'cnt',text:list.length}));
+      cell.onclick=()=>{calDay=key;renderList();const dl=$('dayList');if(dl)dl.scrollIntoView({behavior:'smooth',block:'start'});};}
+    grid.append(cell);}
+  panel.append(el('p',{class:'cal-hint',text:'날짜를 누르면 그날 일기를 보거나, 빈 날이면 바로 그날 일기를 쓸 수 있어요.'}),grid);
+  v.append(panel);
+  // 목록
+  if(!S.entries.length){const b=el('button',{class:'btn primary',text:'첫 일기 쓰기'});b.onclick=()=>showTab('write');
+    v.append(el('div',{class:'panel empty'},[el('h2',{text:'서랍이 아직 비어 있어요'}),el('p',{text:'일기를 쓰면 그날 가장 많이 고른 감정의 캐릭터가 달력에 나타나요.'}),b]));return;}
+  const shown=calDay?(byDay[calDay]||[]):monthList;
+  const head=el('div',{class:'month-head'},[el('h2',{text:calDay?fmtDate(calDay)+'의 일기':`${m}월의 일기`}),el('span',{class:'muted small',text:shown.length+'편'})]);
+  const sec=el('div',{class:'month',id:'dayList'},[head]);
+  if(calDay){const wr=el('button',{class:'btn primary small',type:'button',text:'이 날 일기 더 쓰기'});wr.onclick=()=>writeOn(calDay);
+    const all=el('button',{class:'btn ghost small',type:'button',text:'이번 달 전체 보기'});all.onclick=()=>{calDay=null;renderList();};sec.append(el('div',{class:'row'},[wr,all]));}
+  if(!shown.length)sec.append(el('p',{class:'muted small',text:'이 달에는 아직 쓴 일기가 없어요. ‹ › 로 다른 달을 볼 수 있어요.'}));
+  shown.forEach(e=>sec.append(makeCard(e)));v.append(sec);
+}
+function openDetail(id){
+  const e=S.entries.find(x=>x.id===id);if(!e){showTab('list');return;}
+  for(const k of ['write','list','vault','help'])$('v-'+k).hidden=true;
+  for(const k of ['write','list','vault','help'])$('tab-'+k).setAttribute('aria-selected',String(k==='list'));
+  const v=$('v-detail');v.hidden=false;v.replaceChildren();
+  const cv=el('canvas',{class:'art',width:600,height:375});animate(cv,()=>({words:e.emotions,intensity:e.intensity,seed:e.seed}));cv._popAt=performance.now();
+  const back=el('button',{class:'btn ghost',text:'← 달력'});back.onclick=()=>{calMonth=e.date.slice(0,7);calDay=e.date;showTab('list');};
+  const edit=el('button',{class:'btn',text:'고치기'});edit.onclick=()=>{resetDraft(e);for(const k of ['list','vault'])$('v-'+k).hidden=true;v.hidden=true;$('v-write').hidden=false;$('tab-write').setAttribute('aria-selected','true');$('tab-list').setAttribute('aria-selected','false');window.scrollTo({top:0});};
+  const del=el('button',{class:'btn danger',text:'지우기'});
+  const conf=el('div',{class:'confirm',hidden:''},[el('p',{class:'small',text:'이 일기를 지울까요? 지우면 되돌릴 수 없어요.'})]);
+  const yes=el('button',{class:'btn danger',text:'지우기'}),no=el('button',{class:'btn ghost',text:'그대로 두기'});conf.append(el('div',{class:'row'},[yes,no]));
+  del.onclick=()=>{conf.hidden=false;};no.onclick=()=>{conf.hidden=true;};
+  yes.onclick=async()=>{const before=S.entries;S.entries=S.entries.filter(x=>x.id!==id);try{await persist();(e.media||[]).forEach(md=>{dropUrl(md.id);idb.del(md.id).catch(()=>{});});showTab('list');}catch(err){S.entries=before;}};
+  const lv=['살짝','조금','보통','꽤','아주 강하게'][(e.intensity||3)-1];
+  v.append(el('div',{class:'row',style:'justify-content:space-between'},[back,el('span',{class:'muted small',text:fmtDate(e.date)})]),cv,
+    el('h2',{text:e.title||e.emotions.join(' · ')}),
+    el('div',{class:'chips'},e.emotions.map(w=>el('span',{class:'chip',title:WORD2DESC[w]||''},[el('i',{style:'background:'+FAM[WORD2FAM[w]].col}),w]))),
+    el('p',{class:'muted small',text:'세기: '+lv+' · '+e.emotions.map(w=>w+' = '+(WORD2DESC[w]||'')).join(' / ')}),
+    e.body?el('div',{class:'body-text',text:e.body}):el('p',{class:'muted',text:'적어 둔 글이 없어요.'}),
+    (e.media||[]).length?el('div',{class:'mgrid'},e.media.map(md=>mediaThumb(md))):null,
+    el('div',{class:'row'},[edit,del]),conf);
+  window.scrollTo({top:0});
+}
+
+/* 보관 */
+function renderVault(){$('backupOut').value=store.get()||'';$('copyMsg').textContent='';buildImport($('importBoxApp'),false);}
+$('copyBackup').onclick=()=>{const t=$('backupOut');const done=()=>{$('copyMsg').textContent='복사했어요. 안전한 곳에 붙여 넣어 두세요.';};
+  try{navigator.clipboard.writeText(t.value).then(done,()=>{t.select();$('copyMsg').textContent='선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.';});}catch(e){t.select();$('copyMsg').textContent='선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.';}};
+$('pwChange').addEventListener('submit',async e=>{e.preventDefault();const m=$('pwMsg');m.className='msg';
+  const nw=$('pwNew').value;if(nw.length<6){m.className='msg err';m.textContent='새 비밀번호는 6자 이상이어야 해요.';return;}
+  try{await openVault(store.get(),$('pwOld').value);}catch(err){m.className='msg err';m.textContent='지금 비밀번호가 맞지 않아요.';return;}
+  m.textContent='바꾸는 중…';
+  const salt=crypto.getRandomValues(new Uint8Array(16)),oldKey=S.key,newKey=await deriveKey(nw,salt);const recs=[];
+  try{for(const k of await idb.keys()){const r=await idb.get(k);try{recs.push([k,await encBytes(newKey,await decBytes(oldKey,r))]);}catch(e){}}}catch(e){}
+  S.key=newKey;S.salt=salt;
+  try{await persist();for(const [k,r] of recs)await idb.put(k,r);$('pwOld').value=$('pwNew').value='';m.className='msg ok';m.textContent='바꿨어요. 예전 백업 코드는 예전 비밀번호로 열려요.';renderVaultCode();}catch(err){m.className='msg err';m.textContent=err.message;}
+});
+function renderVaultCode(){$('backupOut').value=store.get()||'';}
+
+/* 자동 잠금 */
+let idleT=null;
+function armIdle(){clearTimeout(idleT);if(S)idleT=setTimeout(lockNow,10*60*1000);}
+['pointerdown','keydown','scroll'].forEach(ev=>window.addEventListener(ev,armIdle,{passive:true}));
+
+if(!window.crypto||!crypto.subtle){$('noStorage').hidden=false;$('noStorage').querySelector('p').textContent='이 브라우저는 암호화 기능을 지원하지 않아요. 최신 크롬·사파리·엣지에서 열어 주세요.';}
+animate($('lockArt'),()=>({words:['설레는','고요한','그리운'],intensity:3,seed:7}));
+animate($('previewArt'),()=>draft?{words:draft.emotions,intensity:draft.intensity,seed:draft.seed}:{words:[],intensity:3,seed:1});
+showLock();
+})();
+</script>
+
+<footer class="site-foot"><a href="privacy.html">개인정보처리방침</a></footer>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+</script>
+</body>
+</html>
