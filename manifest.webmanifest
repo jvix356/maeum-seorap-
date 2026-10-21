@@ -1,15 +1,21 @@
 {
+  "id": "./",
   "name": "마음 서랍",
   "short_name": "마음 서랍",
   "description": "세밀한 감정 단어와 귀여운 감정 캐릭터로 쓰는, 나만 여는 감정 일기",
   "lang": "ko",
+  "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#ECEEF4",
   "theme_color": "#474DA0",
+  "categories": ["lifestyle", "health", "productivity"],
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

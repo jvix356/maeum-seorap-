@@ -57,6 +57,8 @@ button{cursor:pointer}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
 .btn.ghost:hover{color:var(--ink)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.big{padding:12px 22px;font-size:16px;border-radius:12px}
+.backup-main{border-color:var(--accent)}
 input[type=password],input[type=text],input[type=date],textarea{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 textarea{resize:vertical;min-height:140px;font-family:var(--f-display);font-size:16px;line-height:1.85}
 label.lbl{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
@@ -186,7 +188,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <p id="unlockMsg" class="msg"></p>
     <div class="row"><button class="btn primary" type="submit">열기</button><button class="btn ghost" type="button" id="forgotBtn">비밀번호를 잊었어요</button></div>
     <div id="forgotBox" class="confirm" hidden>
-      <p class="small">비밀번호 없이는 열 수 없어요. 백업 코드가 있다면 그걸로 불러올 수 있고, 아니면 모든 기록을 지우고 새로 시작해야 해요. 지우려면 아래에 <b>모두 지우기</b>라고 적어 주세요.</p>
+      <p class="small">비밀번호 없이는 열 수 없어요. 백업 파일이나 코드가 있다면 그걸로 불러올 수 있고, 아니면 모든 기록을 지우고 새로 시작해야 해요. 지우려면 아래에 <b>모두 지우기</b>라고 적어 주세요.</p>
       <input id="wipeText" type="text" placeholder="모두 지우기">
       <div class="row"><button class="btn danger" type="button" id="wipeBtn">기록 모두 지우기</button><button class="btn ghost" type="button" id="toImport2">백업에서 불러오기</button></div>
     </div>
@@ -204,14 +206,15 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <nav class="tabs" role="tablist">
         <button role="tab" id="tab-write" aria-selected="true">쓰기</button>
         <button role="tab" id="tab-list" aria-selected="false">기록</button>
-        <button role="tab" id="tab-vault" aria-selected="false">보관</button>
+        <button role="tab" id="tab-vault" aria-selected="false">백업</button>
         <button role="tab" id="tab-help" aria-selected="false">안내</button>
       </nav>
       <button class="btn" id="lockBtn" title="잠그기">잠그기</button>
     </div>
   </header>
 
-  <div id="firstNotice" class="notice" hidden><div class="row" style="justify-content:space-between"><h3>마음 서랍에 오신 걸 환영해요</h3><button class="btn ghost small" id="hideNotice">확인했어요</button></div><p class="small">처음이라면 <b>안내</b> 탭에서 사용법과 주의사항을 먼저 읽어 주세요. 비밀번호를 잊거나 브라우저 기록을 지우면 일기가 사라질 수 있어서, 가끔 <b>보관</b> 탭에서 백업해 두는 게 좋아요.</p></div>
+  <div id="firstNotice" class="notice" hidden><div class="row" style="justify-content:space-between"><h3>마음 서랍에 오신 걸 환영해요</h3><button class="btn ghost small" id="hideNotice">확인했어요</button></div><p class="small">처음이라면 <b>안내</b> 탭에서 사용법과 주의사항을 먼저 읽어 주세요. 비밀번호를 잊거나 브라우저 기록을 지우면 일기가 사라질 수 있어서, 가끔 <b>백업</b> 탭에서 백업 파일을 저장해 두는 게 좋아요.</p></div>
+  <div id="backupNudge" class="notice" hidden><div class="row" style="justify-content:space-between"><h3 id="nudgeTitle">백업한 지 오래됐어요</h3><button class="btn primary" id="nudgeGo">지금 백업하기</button></div><p class="small muted">휴대폰을 잃어버리거나 앱을 지워도 일기를 되살릴 수 있게, 백업 파일을 하나 저장해 두세요.</p></div>
 
   <!-- 쓰기 -->
   <section id="v-write" class="panel fade">
@@ -259,12 +262,21 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 
   <!-- 보관 -->
   <section id="v-vault" class="fade" hidden style="display:flex;flex-direction:column;gap:16px">
-    <div class="panel">
-      <h2>백업 코드</h2>
-      <p class="muted small">일기는 이 브라우저에만 있어요. 브라우저 데이터를 지우거나 기기를 바꾸면 사라지니, 가끔 백업 코드를 복사해 메모장 같은 곳에 저장해 두세요. 코드는 암호화돼 있어서 비밀번호 없이는 읽을 수 없어요. 사진·영상은 용량이 커서 백업 코드에 들어가지 않아요.</p>
-      <textarea id="backupOut" readonly style="min-height:90px;font-family:ui-monospace,monospace;font-size:12px"></textarea>
-      <div class="row"><button class="btn primary" id="copyBackup">코드 복사</button><span id="copyMsg" class="msg ok"></span></div>
+    <div class="panel backup-main">
+      <h2>백업 파일 저장</h2>
+      <p class="muted small">일기는 이 기기 안에만 있어서, 앱을 지우거나 휴대폰을 바꾸면 사라져요. 버튼 한 번이면 일기와 사진·영상을 파일 하나에 담아 둘 수 있어요. 파일은 암호화돼 있어서 비밀번호 없이는 아무도 열 수 없어요.</p>
+      <p id="lastBackup" class="small"></p>
+      <label class="row small"><input type="checkbox" id="bkMedia" checked> 사진·영상도 함께 담기</label>
+      <div class="row"><button class="btn primary big" id="saveBackupFile">백업 파일 저장</button><button class="btn" id="shareBackupFile" hidden>카톡·드라이브로 보내기</button></div>
+      <p id="bkMsg" class="msg"></p>
+      <p class="muted small">저장한 파일은 '다운로드' 폴더에 들어가요. 구글 드라이브나 나에게 보내기로 한 번 더 옮겨 두면 더 안전해요. 되살릴 때는 아래 '백업에서 불러오기'에서 그 파일을 고르면 돼요.</p>
     </div>
+    <details class="deco"><summary>백업 코드로 복사하기 (글만, 사진·영상 제외)</summary>
+      <div class="deco-body">
+        <textarea id="backupOut" readonly style="min-height:90px;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+        <div class="row"><button class="btn" id="copyBackup">코드 복사</button><span id="copyMsg" class="msg ok"></span></div>
+      </div>
+    </details>
     <div id="importBoxApp" class="panel"></div>
     <form class="panel" id="pwChange" autocomplete="off">
       <h2>비밀번호 바꾸기</h2>
@@ -289,7 +301,9 @@ const FAM = {
  anxiety:{name:'불안',col:'#8466C4',words:[['초조한','시간에 쫓겨 마음이 급한'],['조마조마한','잘못될까 가슴 졸이는'],['걱정스러운','앞일이 마음에 걸리는'],['막연한 불안','이유 없이 마음이 불편한'],['긴장된','몸과 마음이 굳어 있는'],['위축된','작아지고 움츠러든'],['두려운','다가올 일이 무서운'],['안절부절','가만히 있지 못하는'],['심란한','마음이 어수선하게 흩어진'],['압박감','짓눌리는 듯 무거운']]},
  shame:{name:'부끄러움',col:'#DD8D5C',words:[['민망한','남 보기 낯 뜨거운'],['창피한','실수가 드러나 부끄러운'],['쑥스러운','칭찬이나 관심이 어색한'],['미안한','남에게 폐를 끼친 것 같은'],['죄책감','내 잘못이 무겁게 남은'],['후회되는','그때 다르게 했어야 했던'],['무안한','무시당한 듯 머쓱한'],['자괴감','스스로가 한심하게 느껴지는'],['머쓱한','어색해서 멋쩍은'],['열등감','남보다 못하다고 느끼는']]},
  tired:{name:'지침',col:'#868E99',words:[['지친','기운이 다 빠진'],['무기력한','무엇도 할 힘이 없는'],['귀찮은','움직이기 싫은'],['멍한','생각이 멈춘 듯한'],['지루한','시간이 안 가는'],['맥빠진','기대가 꺾여 힘이 빠진'],['시큰둥한','별 관심이 가지 않는'],['무감각한','아무것도 느껴지지 않는'],['소진된','다 써버려 남은 게 없는'],['권태로운','같은 일상이 지겨운']]},
- mixed:{name:'복잡',col:'#3A9DA3',words:[['싱숭생숭한','마음이 들떠 갈피를 못 잡는'],['착잡한','여러 생각이 얽혀 무거운'],['시원섭섭한','후련하면서도 아쉬운'],['뒤숭숭한','어수선하고 불안한'],['얼떨떨한','갑작스러워 정신이 없는'],['당황스러운','예상 밖이라 어쩔 줄 모르는'],['미묘한','딱 집어 말하기 어려운'],['아쉬운','조금 모자라 미련이 남는'],['씁쓸한','결과가 개운치 않은'],['양가감정','좋으면서도 싫은']]}
+ mixed:{name:'복잡',col:'#3A9DA3',words:[['싱숭생숭한','마음이 들떠 갈피를 못 잡는'],['착잡한','여러 생각이 얽혀 무거운'],['시원섭섭한','후련하면서도 아쉬운'],['뒤숭숭한','어수선하고 불안한'],['얼떨떨한','갑작스러워 정신이 없는'],['당황스러운','예상 밖이라 어쩔 줄 모르는'],['미묘한','딱 집어 말하기 어려운'],['아쉬운','조금 모자라 미련이 남는'],['씁쓸한','결과가 개운치 않은'],['양가감정','좋으면서도 싫은']]},
+ timid:{name:'소심',col:'#C49A6C',words:[['머뭇거리는','말을 꺼낼까 말까 망설이는'],['눈치 보이는','남의 기분을 자꾸 살피게 되는'],['주눅 든','기가 꺾여 작아진'],['조심스러운','실수할까 봐 살금살금'],['낯가리는','처음 보는 사람이 어색한'],['소심한','작은 일에도 마음이 쓰이는'],['기죽은','자신감이 쏙 빠진'],['움츠러든','몸과 마음이 작게 웅크린'],['망설이는','결정을 못 하고 서성이는'],['마음 졸이는','혼자 속으로 애태우는']]},
+ prickly:{name:'까칠',col:'#8DB33F',words:[['까칠한','건드리면 날이 서는'],['예민한','작은 자극에도 신경이 곤두서는'],['못마땅한','마음에 차지 않아 불만스러운'],['심술 난','괜히 어깃장을 놓고 싶은'],['삐친','서운해서 토라진'],['뾰로통한','입이 쭉 나온 채 시무룩한'],['꼬인','말이 곱게 안 나가는'],['날카로운','말과 마음에 가시가 돋은'],['퉁명스러운','대답이 무뚝뚝하게 나가는'],['신경질 나는','사소한 일에 왈칵 짜증이 나는']]}
 };
 const WORD2FAM = {}; const WORD2DESC = {};
 for (const k in FAM) for (const [w,d] of FAM[k].words){WORD2FAM[w]=k;WORD2DESC[w]=d;}
@@ -374,10 +388,16 @@ const SPEC_SRC={
  '싱숭생숭한':'uneven wavy - notes+question float','착잡한':'half frown sad scribble still','시원섭섭한':'happy wavy - tear sway','뒤숭숭한':'wide wavy worried scribble jitter',
  '얼떨떨한':'spiral bigO - dizzy spin','당황스러운':'wide bigO worried sweat+exclaim shake','미묘한':'uneven smirk - question tilt','아쉬운':'side pout sad - sway',
  '씁쓸한':'half smirkdown - - still','양가감정':'uneven wavy - question+heart1 tilt',
+ '머뭇거리는':'side wavy worried sweat sway','눈치 보이는':'side flat worried dotdot tilt','주눅 든':'down pout sad - shrink','조심스러운':'up o worried - still',
+ '낯가리는':'side smile - blushlines shrink','소심한':'dot wavy worried sweat shrink','기죽은':'down frown sad - droop','움츠러든':'squeeze tremble worried sweat shrink',
+ '망설이는':'side wavy worried question sway','마음 졸이는':'wide tremble worried sweat jitter',
+ '까칠한':'half flat angry - still','예민한':'wide grit angry vein jitter','못마땅한':'half smirkdown flat - tilt','심술 난':'side smirk angry steam tilt',
+ '삐친':'squeeze pout sad blush tilt','뾰로통한':'half pout flat blush tilt','꼬인':'side smirkdown angry scribble still','날카로운':'side flat angry zap still',
+ '퉁명스러운':'half flat flat - still','신경질 나는':'squeeze grit angry vein shake',
  neutral:'dot flat - - breathe'
 };
 const SPEC={};for(const w in SPEC_SRC){const [e,m,b,x,mo]=SPEC_SRC[w].split(' ');SPEC[w]={e,m,b,x:x==='-'?[]:x.split('+'),mo};}
-const FMO={joy:'bounce',calm:'breathe',love:'pulse',sad:'droop',anger:'shake',anxiety:'jitter',shame:'shrink',tired:'melt',mixed:'tilt'};
+const FMO={joy:'bounce',calm:'breathe',love:'pulse',sad:'droop',anger:'shake',anxiety:'jitter',shame:'shrink',tired:'melt',mixed:'tilt',timid:'shrink',prickly:'tilt'};
 
 function motion(mo,t,a){let dx=0,dy=0,sx=1,sy=1,rot=0;const S=Math.sin;
   switch(mo){
@@ -510,6 +530,66 @@ function extras(c,list,rx,ry,t,ph){
     c.restore();}
 }
 
+/* 감정마다 다른 몸 모양: 기쁨=해님, 평온=찹쌀떡, 애정=하트, 슬픔=물방울, 분노=밤송이, 불안=더듬이 콩,
+   부끄러움=복숭아, 지침=녹은 젤리, 복잡=구름, 소심=버섯, 까칠=선인장 */
+const FAM_SHAPE={joy:'sun',calm:'mochi',love:'heart',sad:'drop',anger:'burr',anxiety:'bean',shame:'peach',tired:'slime',mixed:'cloud',timid:'mushroom',prickly:'cactus'};
+function bodyPath(c,shape,rx,ry,t,ph){
+  const N=120,PI=Math.PI,cy=-ry*.8,sg=v=>v<0?-1:1;c.beginPath();
+  for(let i=0;i<=N;i++){const th=i/N*PI*2,w=1+.018*Math.sin(3*th+t*2+ph);let x=Math.cos(th),y=Math.sin(th);
+    switch(shape){
+      case 'sun':{const k=1+.055*Math.cos(10*th);x*=k;y*=k;break;}
+      case 'mochi':x=sg(x)*Math.pow(Math.abs(x),.75)*1.12;y=y>0?Math.pow(y,.55):y*.9;break;
+      case 'heart':if(y<0){y+=Math.exp(-x*x/.025)*.24;y*=1.06;}else x*=1-.42*Math.pow(y,1.6);x*=1.08;break;
+      case 'drop':if(y<0){const u=-y;x*=Math.sqrt(1-u)*.75+.25*(1-u);y*=1.3;}break;
+      case 'burr':{const s=y<.45?Math.pow(Math.abs(Math.cos(7*th)),8)*.17*Math.min(1,(.45-y)*2.5):0;x*=1+s;y*=1+s;break;}
+      case 'bean':x*=.86*(1-.07*Math.exp(-((y+.05)**2)/.06));if(y<0)y*=1.14;break;
+      case 'peach':if(y<0){y+=Math.exp(-x*x/.012)*.1;y*=1.04;}x*=1.03;break;
+      case 'slime':if(y>0){x*=1+.28*y*y;y=Math.pow(y,.7);}else y*=.96;break;
+      case 'cloud':{const a=.1*Math.max(0,Math.min(1,(.35-y)/.5)),k=1+a*Math.abs(Math.cos(4*th));x*=k*1.06;y*=k;break;}
+      case 'mushroom':x*=.8;if(y<0)y*=.92;break;
+      case 'cactus':x=sg(x)*Math.pow(Math.abs(x),.8)*.8;y=y<0?y*1.22:Math.pow(y,.7);break;
+    }
+    if(y>1)y=1;let px=x*rx*w,py=y*ry*w;if(py>0)py*=.8;c.lineTo(px,py+cy);}
+  c.closePath();
+}
+function drawBody(c,fam,col,rx,ry,t,ph){
+  const shape=FAM_SHAPE[fam]||'mochi',dark=mix(col,INK,.3),lw=Math.max(1.2,rx*.035),S=Math.sin;
+  c.save();c.lineCap='round';c.lineJoin='round';
+  // 발
+  c.fillStyle=dark;for(const s of [-1,1]){c.beginPath();c.ellipse(s*rx*.34,-ry*.03,rx*.17,rx*.1,0,0,7);c.fill();}
+  // 몸 뒤에 오는 것
+  if(shape==='cactus'){const arm=(pts,wig)=>{c.save();c.translate(0,wig);c.beginPath();c.moveTo(pts[0],pts[1]);c.quadraticCurveTo(pts[2],pts[3],pts[4],pts[5]);
+      c.strokeStyle=dark;c.lineWidth=rx*.3;c.stroke();c.strokeStyle=col;c.lineWidth=rx*.3-lw*2;c.stroke();c.restore();};
+    arm([-rx*.55,-ry*.72,-rx*1.05,-ry*.72,-rx*1.02,-ry*1.12+S(t*2+ph)*rx*.03],0);
+    arm([rx*.55,-ry*.52,rx*1.02,-ry*.52,rx*1.0,-ry*.86-S(t*2+ph)*rx*.03],0);}
+  if(shape==='bean')for(const s of [-1,1]){const wx=S(t*7+s+ph)*rx*.06,tx=s*rx*.4+wx,ty=-ry*2.28;
+    c.strokeStyle=dark;c.lineWidth=lw*1.3;c.beginPath();c.moveTo(s*rx*.18,-ry*1.8);c.quadraticCurveTo(s*rx*.2,-ry*2.15,tx,ty);c.stroke();
+    c.fillStyle=col;c.beginPath();c.arc(tx,ty,rx*.09,0,7);c.fill();c.lineWidth=lw;c.stroke();}
+  if(shape==='slime'){c.fillStyle=col;c.beginPath();c.ellipse(0,-ry*.05,rx*1.18,rx*.13,0,0,7);c.fill();c.strokeStyle=dark;c.lineWidth=lw;c.stroke();}
+  // 몸
+  c.fillStyle=shape==='mushroom'?mix(col,'#FFFFFF',.72):col;bodyPath(c,shape,rx,ry,t,ph);c.fill();c.strokeStyle=dark;c.lineWidth=lw;c.stroke();
+  // 몸 위에 오는 것
+  const shine=(x,y,a=-.6)=>{c.fillStyle='rgba(255,255,255,.45)';c.beginPath();c.ellipse(x,y,rx*.17,rx*.09,a,0,7);c.fill();c.beginPath();c.arc(x+rx*.17,y-rx*.1,rx*.035,0,7);c.fill();};
+  switch(shape){
+    case 'mushroom':{c.fillStyle=col;c.beginPath();c.moveTo(-rx*1.2,-ry*1.1);c.bezierCurveTo(-rx*1.28,-ry*2.1,rx*1.28,-ry*2.1,rx*1.2,-ry*1.1);c.quadraticCurveTo(0,-ry*1.28,-rx*1.2,-ry*1.1);c.closePath();c.fill();c.stroke();
+      c.fillStyle='rgba(255,255,255,.9)';for(const [a,b,r] of [[-.58,-1.48,.15],[.12,-1.76,.12],[.66,-1.42,.12],[-.12,-1.4,.07]]){c.beginPath();c.ellipse(a*rx,b*ry,r*rx,r*rx*.8,0,0,7);c.fill();}
+      shine(-rx*.72,-ry*1.66,-.9);break;}
+    case 'peach':{c.strokeStyle='#8A6A4A';c.lineWidth=lw*1.6;c.beginPath();c.moveTo(0,-ry*1.68);c.lineTo(rx*.04,-ry*1.92);c.stroke();
+      c.save();c.translate(rx*.06,-ry*1.86);c.rotate(-.5+S(t*1.5+ph)*.12);c.fillStyle='#7DB65A';c.beginPath();c.ellipse(rx*.2,0,rx*.22,rx*.1,0,0,7);c.fill();c.strokeStyle='#5D9140';c.lineWidth=lw;c.stroke();c.restore();
+      c.fillStyle='rgba(255,140,150,.28)';c.beginPath();c.ellipse(rx*.35,-ry*.6,rx*.45,ry*.42,0,0,7);c.fill();shine(-rx*.5,-ry*1.32);break;}
+    case 'cactus':{c.strokeStyle=mix(col,'#FFFFFF',.55);c.lineWidth=lw;
+      for(const [a,b] of [[-.42,-1.55],[.4,-1.5],[-.15,-1.85],[.2,-1.9],[-.58,-.42],[.58,-.36],[0,-.22],[-.66,-1.15],[.66,-1.12]]){const x=a*rx,y=b*ry,d=rx*.045;c.beginPath();c.moveTo(x-d,y-d);c.lineTo(x,y);c.lineTo(x+d,y-d);c.stroke();}
+      const fx=rx*.08,fy=-ry*2.02;c.fillStyle='#F28BB0';for(let i=0;i<5;i++){const a=i/5*Math.PI*2+t*.4;c.beginPath();c.arc(fx+Math.cos(a)*rx*.08,fy+Math.sin(a)*rx*.08,rx*.07,0,7);c.fill();}
+      c.fillStyle='#FFD66B';c.beginPath();c.arc(fx,fy,rx*.05,0,7);c.fill();shine(-rx*.4,-ry*1.55);break;}
+    case 'slime':{const u=((t*.25+ph*.1)%1+1)%1;c.fillStyle=col;c.globalAlpha=u<.85?1:(1-u)/.15;c.beginPath();const dx=rx*.86,dy=-ry*1.25+u*ry*1.1;c.moveTo(dx,dy-rx*.13);c.quadraticCurveTo(dx+rx*.09,dy,dx,dy+rx*.07);c.quadraticCurveTo(dx-rx*.09,dy,dx,dy-rx*.13);c.fill();c.globalAlpha=1;shine(-rx*.5,-ry*1.3);break;}
+    case 'sun':{shine(-rx*.5,-ry*1.38);break;}
+    case 'drop':{shine(-rx*.32,-ry*1.42,-1);break;}
+    case 'heart':{shine(-rx*.6,-ry*1.42,-.8);break;}
+    default:shine(-rx*.48,-ry*1.35);
+  }
+  c.restore();
+}
+
 function drawChar(c,word,x,G,size,t,a,ph,popE){
   const sp=SPEC[word]||SPEC.neutral,fam=WORD2FAM[word],col=fam?FAM[fam].col:'#C3C7D3';
   let {dx,dy,sx,sy,rot}=motion(sp.mo==='-'?FMO[fam]:sp.mo,t,a);
@@ -518,10 +598,7 @@ function drawChar(c,word,x,G,size,t,a,ph,popE){
   c.fillStyle='rgba(40,30,60,.10)';c.beginPath();c.ellipse(x+dx,G+2,rx*.85*sx*Math.max(.5,1+dy/250),rx*.15,0,0,7);c.fill();
   c.save();c.translate(x+dx,G+dy);c.rotate(rot);c.scale(sx,sy);
   if(sp.x.includes('faint'))c.globalAlpha=.7;
-  c.fillStyle=col;c.beginPath();
-  for(let i=0;i<=48;i++){const th=i/48*Math.PI*2,w=1+.025*Math.sin(3*th+t*2+ph);let px=Math.cos(th)*rx*w,py=Math.sin(th)*ry*w;if(py>0)py*=.8;c.lineTo(px,py-ry*.8);}
-  c.closePath();c.fill();
-  c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.ellipse(-rx*.48,-ry*1.35,rx*.17,rx*.09,-.6,0,7);c.fill();
+  drawBody(c,fam,col,rx,ry,t,ph);
   const lw=Math.max(1.6,rx*.065);c.lineWidth=lw;c.lineCap='round';c.lineJoin='round';
   if(sp.x.includes('crack')){c.strokeStyle=INK;c.beginPath();c.moveTo(rx*.62,-ry*1.55);c.lineTo(rx*.5,-ry*1.35);c.lineTo(rx*.66,-ry*1.18);c.lineTo(rx*.55,-ry*.95);c.stroke();}
   brows(c,sp.b,rx,ry);
@@ -533,11 +610,11 @@ function drawChar(c,word,x,G,size,t,a,ph,popE){
 
 /* ---------- 배경 · 동물 · 소품 ---------- */
 const SCENES={auto:'자동 (감정 따라)',plain:'단색',field:'들판',room:'내 방',cafe:'카페',sea:'바다',rain:'비 오는 날',night:'밤하늘'};
-const FAM_SCENE={joy:'field',calm:'room',love:'cafe',sad:'rain',anger:'plain',anxiety:'night',shame:'room',tired:'night',mixed:'sea'};
+const FAM_SCENE={joy:'field',calm:'room',love:'cafe',sad:'rain',anger:'plain',anxiety:'night',shame:'room',tired:'night',mixed:'sea',timid:'room',prickly:'plain'};
 const ANIMALS={cat:'고양이',dog:'강아지',rabbit:'토끼',bear:'곰',bird:'새'};
 const ITEMS={flower:'꽃',plant:'화분',balloon:'풍선',cloud:'구름',rainbow:'무지개',star:'별',heart:'하트',butterfly:'나비',coffee:'커피',book:'책',cake:'케이크',gift:'선물'};
 const SKY=['cloud','rainbow','balloon','star','heart','bird'];
-const MOOD={joy:'happy',calm:'calm',love:'love',sad:'sad',anger:'angry',anxiety:'nervous',shame:'shy',tired:'sleepy',mixed:'confused'};
+const MOOD={joy:'happy',calm:'calm',love:'love',sad:'sad',anger:'angry',anxiety:'nervous',shame:'shy',tired:'sleepy',mixed:'confused',timid:'nervous',prickly:'angry'};
 const moodOf=ws=>ws.length?MOOD[WORD2FAM[ws[0]]]:'calm';
 
 function drawScene(c,scene,col,t,W,H){
@@ -780,18 +857,30 @@ $('toImport1').onclick=openLockImport;$('toImport2').onclick=openLockImport;
 function buildImport(box,fromLock){
   box.replaceChildren();
   const ta=el('textarea',{id:fromLock?'impTextL':'impTextA',placeholder:'백업 코드를 붙여 넣으세요',style:'min-height:80px;font-family:ui-monospace,monospace;font-size:12px'});
-  const file=el('input',{type:'file',accept:'.txt,.json,text/plain',id:fromLock?'impFileL':'impFileA'});
+  const file=el('input',{type:'file',accept:'.json,.txt,application/json,text/plain',id:fromLock?'impFileL':'impFileA'});
   const pw=el('input',{type:'password',placeholder:'그 백업을 만들 때 쓰던 비밀번호',id:fromLock?'impPwL':'impPwA'});
   const msg=el('p',{class:'msg'});const btn=el('button',{class:'btn primary',type:'button',text:'불러오기'});
-  file.onchange=()=>{const f=file.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{ta.value=String(rd.result).trim();};rd.readAsText(f);};
-  btn.onclick=async()=>{msg.className='msg';msg.textContent='확인하는 중…';
-    try{const code=ta.value.trim();const o=await openVault(code,pw.value);
+  let picked=null; // 고른 백업 파일 내용
+  file.onchange=()=>{const f=file.files[0];if(!f)return;msg.className='msg';msg.textContent='파일을 읽는 중…';const rd=new FileReader();
+    rd.onload=()=>{const txt=String(rd.result).trim();const b=parseBackup(txt);
+      if(b&&b.kind==='backup'){picked=b;ta.value='';ta.placeholder='백업 파일을 골랐어요. 비밀번호를 넣고 불러오기를 누르세요.';const n=Object.keys(b.media||{}).length;
+        msg.className='msg ok';msg.textContent=`백업 파일 (${(b.made||'').slice(0,10)}${n?` · 사진·영상 ${n}개`:''})`;}
+      else{picked=null;ta.value=txt;msg.textContent='';}};
+    rd.onerror=()=>{msg.className='msg err';msg.textContent='파일을 읽지 못했어요.';};rd.readAsText(f);};
+  ta.oninput=()=>{picked=null;};
+  btn.onclick=async()=>{msg.className='msg';msg.textContent='확인하는 중…';btn.disabled=true;
+    try{let b=picked;if(!b){b=parseBackup(ta.value.trim());if(!b)throw new Error('format');}
+      const code=b.kind==='backup'?b.vault:ta.value.trim();const o=await openVault(code,pw.value);
       if(!store.set(code))throw new Error('저장 공간에 쓸 수 없어요.');
-      S={key:o.key,salt:o.salt,entries:o.data.entries||[]};clearUrls();gcMedia();enterApp();
-    }catch(err){msg.className='msg err';msg.textContent=err.message==='저장 공간에 쓸 수 없어요.'?err.message:'코드가 올바르지 않거나 비밀번호가 맞지 않아요.';}};
+      const media=b.kind==='backup'?(b.media||{}):{};let n=0;
+      for(const id in media){try{await idb.put(id,{iv:fromB64(media[id].iv),data:fromB64(media[id].data).buffer});n++;}catch(e){}}
+      S={key:o.key,salt:o.salt,entries:o.data.entries||[]};clearUrls();await gcMedia();btn.disabled=false;enterApp();
+    }catch(err){btn.disabled=false;msg.className='msg err';msg.textContent=err.message==='저장 공간에 쓸 수 없어요.'?err.message:'파일·코드가 올바르지 않거나 비밀번호가 맞지 않아요.';}};
   box.append(el('h2',{text:'백업에서 불러오기'}),
-    el('p',{class:'muted small',text:fromLock?'다른 기기에서 복사한 백업 코드로 일기장을 옮겨 와요.':'불러오면 지금 이 기기의 기록이 백업 내용으로 바뀌어요. 먼저 지금 코드를 복사해 두세요. 비밀번호도 백업의 비밀번호로 바뀌어요.'}),
-    ta,el('div',{class:'field'},[el('label',{class:'lbl',text:'또는 텍스트 파일 고르기'}),file]),pw,msg,el('div',{class:'row'},[btn]));
+    el('p',{class:'muted small',text:fromLock?'저장해 둔 백업 파일(또는 백업 코드)로 일기장을 되살려요.':'불러오면 지금 이 기기의 기록이 백업 내용으로 바뀌어요. 먼저 지금 상태를 백업 파일로 저장해 두세요. 비밀번호도 백업의 비밀번호로 바뀌어요.'}),
+    el('div',{class:'field'},[el('label',{class:'lbl',text:'백업 파일 고르기'}),file]),
+    el('details',{class:'deco'},[el('summary',{text:'백업 코드를 붙여 넣을래요'}),el('div',{class:'deco-body'},[ta])]),
+    pw,msg,el('div',{class:'row'},[btn]));
 }
 
 /* ---------- 주의 안내 ---------- */
@@ -813,8 +902,8 @@ const NOTICE=`<h3>꼭 알아 두세요</h3>
 <ul>
 <li><b>비밀번호는 꼭 기억해 주세요.</b> 일기를 비밀번호로 잠가 두기 때문에, 잊어버리면 만든 사람도 열어 드릴 수 없어요. 잊지 않을 곳에 따로 적어 두는 걸 추천해요.</li>
 <li><b>일기는 지금 쓰는 기기와 브라우저 안에만 있어요.</b> 브라우저의 방문 기록이나 사이트 데이터를 지우면, 또는 시크릿(비공개) 창에서 쓰면 일기가 사라질 수 있어요. 휴대폰과 컴퓨터의 일기장도 서로 따로예요.</li>
-<li><b>가끔 백업해 주세요.</b> '보관' 탭에서 백업 코드를 복사해 메모 앱 같은 곳에 붙여 두면, 기기를 바꿔도 '백업에서 불러오기'로 그대로 옮길 수 있어요. 백업 코드도 암호화돼 있어서 비밀번호 없이는 아무도 읽을 수 없어요.</li>
-<li><b>사진·영상은 백업 코드에 들어가지 않아요.</b> 용량이 커서 이 기기에만 보관돼요. 소중한 원본은 사진첩에 따로 남겨 두세요.</li>
+<li><b>가끔 백업해 주세요.</b> '백업' 탭에서 <b>백업 파일 저장</b>을 누르면 일기와 사진·영상이 파일 하나에 담겨요. 기기를 바꿔도 '백업에서 불러오기'로 그대로 옮길 수 있어요. 백업 파일도 암호화돼 있어서 비밀번호 없이는 아무도 읽을 수 없어요.</li>
+<li><b>백업 코드(글만 복사)에는 사진·영상이 들어가지 않아요.</b> 사진·영상까지 지키려면 백업 파일로 저장해 주세요.</li>
 <li><b>여럿이 함께 쓰는 컴퓨터에서는 쓰지 않는 게 좋아요.</b> 다 쓰면 '잠그기'를 눌러 주세요. 10분 동안 아무것도 하지 않으면 저절로 잠겨요.</li>
 <li><b>비밀번호는 다른 곳에서 쓰지 않는 것으로 정해 주세요.</b> 생일이나 전화번호처럼 남이 짐작하기 쉬운 건 피해 주세요.</li>
 </ul>
@@ -830,6 +919,7 @@ function showTab(t){
   for(const k of ['write','list','vault','help'])$('tab-'+k).setAttribute('aria-selected',String(k===t));
   $('v-write').hidden=t!=='write';$('v-list').hidden=t!=='list';$('v-vault').hidden=t!=='vault';$('v-help').hidden=t!=='help';$('v-detail').hidden=true;
   if(t==='list')renderList();if(t==='vault')renderVault();if(t==='write')renderPicker();
+  renderNudge();
   window.scrollTo({top:0});
 }
 $('tab-write').onclick=()=>showTab('write');$('tab-list').onclick=()=>showTab('list');$('tab-vault').onclick=()=>showTab('vault');$('tab-help').onclick=()=>showTab('help');
@@ -1001,7 +1091,7 @@ function openDetail(id){
   const e=S.entries.find(x=>x.id===id);if(!e){showTab('list');return;}
   for(const k of ['write','list','vault','help'])$('v-'+k).hidden=true;
   for(const k of ['write','list','vault','help'])$('tab-'+k).setAttribute('aria-selected',String(k==='list'));
-  const v=$('v-detail');v.hidden=false;v.replaceChildren();
+  const v=$('v-detail');v.hidden=false;v.replaceChildren();renderNudge();
   const cv=el('canvas',{class:'art',width:600,height:375});animate(cv,()=>({words:e.emotions,intensity:e.intensity,seed:e.seed,deco:{scene:e.scene,props:e.props}}));cv._popAt=performance.now();
   const back=el('button',{class:'btn ghost',text:'← 달력'});back.onclick=()=>{calMonth=e.date.slice(0,7);calDay=e.date;showTab('list');};
   const edit=el('button',{class:'btn',text:'고치기'});edit.onclick=()=>{resetDraft(e);for(const k of ['list','vault'])$('v-'+k).hidden=true;v.hidden=true;$('v-write').hidden=false;$('tab-write').setAttribute('aria-selected','true');$('tab-list').setAttribute('aria-selected','false');window.scrollTo({top:0});};
@@ -1022,8 +1112,33 @@ function openDetail(id){
 }
 
 /* 보관 */
-function renderVault(){$('backupOut').value=store.get()||'';$('copyMsg').textContent='';buildImport($('importBoxApp'),false);}
-$('copyBackup').onclick=()=>{const t=$('backupOut');const done=()=>{$('copyMsg').textContent='복사했어요. 안전한 곳에 붙여 넣어 두세요.';};
+function parseBackup(txt){try{const o=JSON.parse(txt);if(!o||o.app!=='maeum-seorap')return null;if(o.kind==='backup')return typeof o.vault==='string'?o:null;return{kind:'code'};}catch(e){return null;}}
+const BKEY='maeum-seorap.lastBackup';
+const lastBackupAt=()=>{try{return +localStorage.getItem(BKEY)||0}catch(e){return 0}};
+const markBackup=()=>{try{localStorage.setItem(BKEY,String(Date.now()))}catch(e){}};
+function backupAgo(){const t=lastBackupAt();if(!t)return null;const d=Math.floor((Date.now()-t)/864e5);return d<=0?'오늘':d+'일 전';}
+function renderLastBackup(){const a=backupAgo(),p=$('lastBackup');p.textContent=a?`마지막 백업: ${a}`:'아직 백업한 적이 없어요.';p.className='small'+(a?' muted':' msg err');}
+function renderNudge(){const t=lastBackupAt(),old=!t||Date.now()-t>7*864e5;$('backupNudge').hidden=!(S&&S.entries.length&&old);$('nudgeTitle').textContent=t?`백업한 지 ${backupAgo()}이에요`:'아직 백업 파일이 없어요';}
+$('nudgeGo').onclick=()=>showTab('vault');
+let lastFile=null;
+async function makeBackupFile(withMedia){
+  const media={};
+  if(withMedia){const used=new Set();S.entries.forEach(e=>(e.media||[]).forEach(m=>used.add(m.id)));
+    for(const id of used){const r=await idb.get(id).catch(()=>null);if(r)media[id]={iv:toB64(new Uint8Array(r.iv)),data:toB64(new Uint8Array(r.data))};}}
+  const obj={app:'maeum-seorap',kind:'backup',v:2,made:new Date().toISOString(),vault:store.get(),media};
+  const name=`maeum-seorap-backup-${today()}.json`;
+  return new File([JSON.stringify(obj)],name,{type:'application/json'});
+}
+function downloadFile(f){const u=URL.createObjectURL(f);const a=el('a',{href:u,download:f.name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
+$('saveBackupFile').onclick=async()=>{const m=$('bkMsg'),b=$('saveBackupFile');m.className='msg';m.textContent='백업 파일을 만드는 중…';b.disabled=true;
+  try{lastFile=await makeBackupFile($('bkMedia').checked);downloadFile(lastFile);markBackup();renderLastBackup();renderNudge();
+    const mb=(lastFile.size/1048576).toFixed(lastFile.size<1048576?2:1);m.className='msg ok';m.textContent=`저장했어요! ${lastFile.name} (${mb}MB)`;
+    let canShare=false;try{canShare=!!(navigator.canShare&&navigator.canShare({files:[lastFile]}));}catch(e){}$('shareBackupFile').hidden=!canShare;
+  }catch(err){m.className='msg err';m.textContent='백업 파일을 만들지 못했어요. 사진·영상을 빼고 다시 해 보세요.';}
+  b.disabled=false;};
+$('shareBackupFile').onclick=async()=>{if(!lastFile)return;try{await navigator.share({files:[lastFile],title:'마음 서랍 백업'});}catch(e){}};
+function renderVault(){$('backupOut').value=store.get()||'';$('copyMsg').textContent='';$('bkMsg').textContent='';$('shareBackupFile').hidden=true;lastFile=null;renderLastBackup();buildImport($('importBoxApp'),false);}
+$('copyBackup').onclick=()=>{const t=$('backupOut');const done=()=>{markBackup();renderLastBackup();$('copyMsg').textContent='복사했어요. 안전한 곳에 붙여 넣어 두세요.';};
   try{navigator.clipboard.writeText(t.value).then(done,()=>{t.select();$('copyMsg').textContent='선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.';});}catch(e){t.select();$('copyMsg').textContent='선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.';}};
 $('pwChange').addEventListener('submit',async e=>{e.preventDefault();const m=$('pwMsg');m.className='msg';
   const nw=$('pwNew').value;if(nw.length<6){m.className='msg err';m.textContent='새 비밀번호는 6자 이상이어야 해요.';return;}
