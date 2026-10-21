@@ -1,0 +1,5 @@
+/* Gowun fonts: Copyright 2021 The Gowun Batang / Dodum Project Authors.
+   SIL Open Font License 1.1; see fonts/gowun-batang/OFL.txt, fonts/gowun-dodum/OFL.txt and fonts/README.md. */
+@font-face{font-family:"Gowun Batang";src:url("./GowunBatang-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Gowun Batang";src:url("./GowunBatang-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Gowun Dodum";src:url("./GowunDodum-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}

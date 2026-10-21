@@ -8,6 +8,7 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#474DA0">
+<link rel="stylesheet" href="fonts/fonts.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -26,8 +27,8 @@ img{max-width:100%}
 :root{
   --bg:#ECEEF4; --surface:#FFFFFF; --sunk:#F4F5F9; --ink:#1E2231; --muted:#636A7E; --line:#D5D9E4;
   --accent:#474DA0; --accent-ink:#FFFFFF; --danger:#B83A32;
-  --f-display:"Gowun Batang","Nanum Myeongjo",serif;
-  --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-display:"Gowun Batang",serif;
+  --f-ui:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#13151D; --surface:#1C1F2A; --sunk:#171922; --ink:#E7E9F1; --muted:#9BA1B5; --line:#2D3142;
@@ -59,6 +60,7 @@ button{cursor:pointer}
 .btn.big{padding:12px 22px;font-size:16px;border-radius:12px}
 .backup-main{border-color:var(--accent)}
 input[type=password],input[type=text],input[type=date],textarea{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+#eTitle{font-family:var(--f-display)}
 textarea{resize:vertical;min-height:140px;font-family:var(--f-display);font-size:16px;line-height:1.85}
 label.lbl{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
 .field{display:flex;flex-direction:column}
@@ -116,7 +118,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .card .meta{min-width:0;display:flex;flex-direction:column;gap:4px}
 .card .date{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .card .t{font-family:var(--f-display);font-weight:700;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card .ex{font-size:13px;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card .ex{font-family:var(--f-display);font-size:13px;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal .dow{font-size:12px;text-align:center;color:var(--muted);font-weight:600}
 .cal .sun{color:var(--danger)}
@@ -1194,7 +1196,7 @@ showLock();
 })();
 </script>
 
-<footer class="site-foot"><a href="privacy.html">개인정보처리방침</a></footer>
+<footer class="site-foot"><a href="privacy.html">개인정보처리방침</a> · <a href="privacy.html#fonts">글꼴 저작권</a></footer>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 </script>
