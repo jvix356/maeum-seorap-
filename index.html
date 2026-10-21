@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>마음 서랍</title>
 <meta name="description" content="세밀한 감정 단어와 귀여운 감정 캐릭터로 쓰는, 나만 여는 감정 일기">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#474DA0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -19,9 +21,6 @@ img{max-width:100%}
 </style>
 
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
 /* Layout: 한 줄 세로 흐름의 일기장. 잠금 화면 → 쓰기 / 기록 / 보관 세 탭. 그림은 감정 색으로 자동 생성 */
 :root{
@@ -176,7 +175,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <form id="setupForm" class="panel" hidden autocomplete="off">
     <h2>처음 오셨네요</h2>
     <p class="muted small">비밀번호로 일기를 암호화해서 이 기기의 브라우저 안에만 저장해요. 서버로 보내지 않아요.</p>
-    <div class="field"><label class="lbl" for="pw1">비밀번호 (6자 이상)</label><input id="pw1" type="password" minlength="6" required></div>
+    <div class="field"><label class="lbl" for="pw1">비밀번호 (12자 이상)</label><input id="pw1" type="password" minlength="12" required></div>
     <div class="field"><label class="lbl" for="pw2">한 번 더</label><input id="pw2" type="password" required></div>
     <label class="row small"><input id="pwAgree" type="checkbox" required> 비밀번호를 잊으면 누구도 일기를 되살릴 수 없다는 걸 알고 있어요.</label>
     <p id="setupMsg" class="msg"></p>
@@ -264,7 +263,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <section id="v-vault" class="fade" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="panel backup-main">
       <h2>백업 파일 저장</h2>
-      <p class="muted small">일기는 이 기기 안에만 있어서, 앱을 지우거나 휴대폰을 바꾸면 사라져요. 버튼 한 번이면 일기와 사진·영상을 파일 하나에 담아 둘 수 있어요. 파일은 암호화돼 있어서 비밀번호 없이는 아무도 열 수 없어요.</p>
+      <p class="muted small">일기는 이 기기 안에만 있어서, 앱을 지우거나 휴대폰을 바꾸면 사라져요. 버튼 한 번이면 일기와 사진·영상을 파일 하나에 담아 둘 수 있어요. 파일도 암호화되지만, 쉬운 비밀번호는 추측될 수 있어요.</p>
       <p id="lastBackup" class="small"></p>
       <label class="row small"><input type="checkbox" id="bkMedia" checked> 사진·영상도 함께 담기</label>
       <div class="row"><button class="btn primary big" id="saveBackupFile">백업 파일 저장</button><button class="btn" id="shareBackupFile" hidden>카톡·드라이브로 보내기</button></div>
@@ -281,7 +280,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <form class="panel" id="pwChange" autocomplete="off">
       <h2>비밀번호 바꾸기</h2>
       <div class="field"><label class="lbl" for="pwOld">지금 비밀번호</label><input id="pwOld" type="password" required></div>
-      <div class="field"><label class="lbl" for="pwNew">새 비밀번호 (6자 이상)</label><input id="pwNew" type="password" minlength="6" required></div>
+      <div class="field"><label class="lbl" for="pwNew">새 비밀번호 (12자 이상)</label><input id="pwNew" type="password" minlength="12" required></div>
       <p id="pwMsg" class="msg"></p>
       <div class="row"><button class="btn" type="submit">바꾸기</button></div>
     </form>
@@ -346,6 +345,7 @@ async function openVault(str,pw){
 }
 
 /* ---------- 상태 ---------- */
+let securityBusy=false;
 let S=null; // {key,salt,entries:[]}
 let draft=null;
 
@@ -836,10 +836,18 @@ function showLock(){
   $('pwIn').value='';$('unlockMsg').textContent='';
   if(has)setTimeout(()=>$('pwIn').focus(),50);
 }
-function lockNow(){S=null;draft=null;pending.clear();clearUrls();document.querySelectorAll('.viewer').forEach(v=>v.remove());showLock();}
+function lockNow(){
+  if(securityBusy){armIdle();return;}
+  S=null;draft=null;pending.clear();clearUrls();clearTimeout(idleT);lastFile=null;
+  document.querySelectorAll('.viewer').forEach(v=>v.remove());
+  document.querySelectorAll('#appView input,#appView textarea,#lockView input,#lockView textarea').forEach(n=>{if(!['checkbox','radio','range','file','button','submit'].includes(n.type))n.value='';if(n.type==='file')n.value='';});
+  ['v-detail','v-list','importBoxApp','importBoxLock','mediaGrid','chips','words','fams','sceneChips','animalChips','propChips'].forEach(id=>{const n=$(id);if(n)n.replaceChildren();});
+  document.querySelectorAll('canvas').forEach(cv=>cv.getContext('2d').clearRect(0,0,cv.width,cv.height));
+  showLock();
+}
 
 $('setupForm').addEventListener('submit',async e=>{e.preventDefault();const m=$('setupMsg');m.className='msg err';
-  const a=$('pw1').value,b=$('pw2').value;if(a.length<6){m.textContent='비밀번호는 6자 이상이어야 해요.';return;}if(a!==b){m.textContent='두 비밀번호가 달라요.';return;}
+  const a=$('pw1').value,b=$('pw2').value;if(a.length<12){m.textContent='비밀번호는 12자 이상이어야 해요.';return;}if(a!==b){m.textContent='두 비밀번호가 달라요.';return;}
   m.className='msg';m.textContent='일기장을 만드는 중…';
   const salt=crypto.getRandomValues(new Uint8Array(16));S={key:await deriveKey(a,salt),salt,entries:[]};
   try{await persist();$('pw1').value=$('pw2').value='';enterApp();}catch(err){m.className='msg err';m.textContent=err.message;}
@@ -874,7 +882,7 @@ function buildImport(box,fromLock){
       if(!store.set(code))throw new Error('저장 공간에 쓸 수 없어요.');
       const media=b.kind==='backup'?(b.media||{}):{};let n=0;
       for(const id in media){try{await idb.put(id,{iv:fromB64(media[id].iv),data:fromB64(media[id].data).buffer});n++;}catch(e){}}
-      S={key:o.key,salt:o.salt,entries:o.data.entries||[]};clearUrls();await gcMedia();btn.disabled=false;enterApp();
+      S={key:o.key,salt:o.salt,entries:o.data.entries||[]};clearUrls();await gcMedia();pw.value="";ta.value="";file.value="";btn.disabled=false;enterApp();
     }catch(err){btn.disabled=false;msg.className='msg err';msg.textContent=err.message==='저장 공간에 쓸 수 없어요.'?err.message:'파일·코드가 올바르지 않거나 비밀번호가 맞지 않아요.';}};
   box.append(el('h2',{text:'백업에서 불러오기'}),
     el('p',{class:'muted small',text:fromLock?'저장해 둔 백업 파일(또는 백업 코드)로 일기장을 되살려요.':'불러오면 지금 이 기기의 기록이 백업 내용으로 바뀌어요. 먼저 지금 상태를 백업 파일로 저장해 두세요. 비밀번호도 백업의 비밀번호로 바뀌어요.'}),
@@ -898,11 +906,11 @@ const GUIDE=`<h3>마음 서랍 사용법</h3>
 </ol>
 <p class="soft">딱 맞는 단어가 없어도 괜찮아요. 가장 가까운 걸 고르고, 나머지는 글로 풀어 보세요. 하루에 여러 번 써도 돼요.</p>`;
 const NOTICE=`<h3>꼭 알아 두세요</h3>
-<p class="small">마음 서랍은 서버 없이 여러분 기기 안에서만 움직여요. 그래서 누구도 몰래 볼 수 없지만, 그만큼 몇 가지는 직접 챙겨 주셔야 해요.</p>
+<p class="small">마음 서랍은 서버 없이 여러분 기기 안에서만 움직여요. 일기는 암호화해 저장하지만, 기기 보안과 비밀번호 관리가 필요해요.</p>
 <ul>
 <li><b>비밀번호는 꼭 기억해 주세요.</b> 일기를 비밀번호로 잠가 두기 때문에, 잊어버리면 만든 사람도 열어 드릴 수 없어요. 잊지 않을 곳에 따로 적어 두는 걸 추천해요.</li>
 <li><b>일기는 지금 쓰는 기기와 브라우저 안에만 있어요.</b> 브라우저의 방문 기록이나 사이트 데이터를 지우면, 또는 시크릿(비공개) 창에서 쓰면 일기가 사라질 수 있어요. 휴대폰과 컴퓨터의 일기장도 서로 따로예요.</li>
-<li><b>가끔 백업해 주세요.</b> '백업' 탭에서 <b>백업 파일 저장</b>을 누르면 일기와 사진·영상이 파일 하나에 담겨요. 기기를 바꿔도 '백업에서 불러오기'로 그대로 옮길 수 있어요. 백업 파일도 암호화돼 있어서 비밀번호 없이는 아무도 읽을 수 없어요.</li>
+<li><b>가끔 백업해 주세요.</b> '백업' 탭에서 <b>백업 파일 저장</b>을 누르면 일기와 사진·영상이 파일 하나에 담겨요. 기기를 바꿔도 '백업에서 불러오기'로 그대로 옮길 수 있어요. 백업 파일도 암호화돼 있어서 내용을 읽으려면 비밀번호가 필요해요. 짧거나 쉬운 비밀번호는 추측될 수 있으니 길고 고유하게 정해 주세요.</li>
 <li><b>백업 코드(글만 복사)에는 사진·영상이 들어가지 않아요.</b> 사진·영상까지 지키려면 백업 파일로 저장해 주세요.</li>
 <li><b>여럿이 함께 쓰는 컴퓨터에서는 쓰지 않는 게 좋아요.</b> 다 쓰면 '잠그기'를 눌러 주세요. 10분 동안 아무것도 하지 않으면 저절로 잠겨요.</li>
 <li><b>비밀번호는 다른 곳에서 쓰지 않는 것으로 정해 주세요.</b> 생일이나 전화번호처럼 남이 짐작하기 쉬운 건 피해 주세요.</li>
@@ -1027,12 +1035,12 @@ $('saveBtn').onclick=async()=>{const m=$('saveMsg');
   if(!draft.emotions.length){m.className='msg err';m.textContent='감정 단어를 하나 이상 골라 주세요.';return;}
   const isNew=!draft.id;const entry={...draft,id:draft.id||uid(),updated:Date.now()};if(isNew)entry.created=Date.now();
   const orig=S.entries.find(e=>e.id===entry.id);const removed=((orig&&orig.media)||[]).filter(x=>!entry.media.some(y=>y.id===x.id));
-  m.className='msg';m.textContent='저장하는 중…';$('saveBtn').disabled=true;
+  m.className='msg';m.textContent='저장하는 중…';$('saveBtn').disabled=true;securityBusy=true;
   try{for(const md of entry.media){const b=pending.get(md.id);if(b)await idb.put(md.id,await encBytes(S.key,await b.arrayBuffer()));}}
-  catch(err){$('saveBtn').disabled=false;m.className='msg err';m.textContent='사진·영상을 저장할 공간이 부족해요. 몇 개를 빼고 다시 해 보세요.';return;}
+  catch(err){securityBusy=false;$('saveBtn').disabled=false;m.className='msg err';m.textContent='사진·영상을 저장할 공간이 부족해요. 몇 개를 빼고 다시 해 보세요.';return;}
   const before=S.entries;S.entries=isNew?[entry,...S.entries]:S.entries.map(e=>e.id===entry.id?entry:e);
-  try{await persist();entry.media.forEach(md=>pending.delete(md.id));for(const r of removed){dropUrl(r.id);idb.del(r.id).catch(()=>{});}$('saveBtn').disabled=false;resetDraft();openDetail(entry.id);}
-  catch(err){S.entries=before;$('saveBtn').disabled=false;m.className='msg err';m.textContent=err.message;}
+  try{await persist();entry.media.forEach(md=>pending.delete(md.id));for(const r of removed){dropUrl(r.id);idb.del(r.id).catch(()=>{});}securityBusy=false;$('saveBtn').disabled=false;resetDraft();openDetail(entry.id);}
+  catch(err){S.entries=before;securityBusy=false;$('saveBtn').disabled=false;m.className='msg err';m.textContent=err.message;}
 };
 
 /* 기록 */
@@ -1140,14 +1148,37 @@ $('shareBackupFile').onclick=async()=>{if(!lastFile)return;try{await navigator.s
 function renderVault(){$('backupOut').value=store.get()||'';$('copyMsg').textContent='';$('bkMsg').textContent='';$('shareBackupFile').hidden=true;lastFile=null;renderLastBackup();buildImport($('importBoxApp'),false);}
 $('copyBackup').onclick=()=>{const t=$('backupOut');const done=()=>{markBackup();renderLastBackup();$('copyMsg').textContent='복사했어요. 안전한 곳에 붙여 넣어 두세요.';};
   try{navigator.clipboard.writeText(t.value).then(done,()=>{t.select();$('copyMsg').textContent='선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.';});}catch(e){t.select();$('copyMsg').textContent='선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.';}};
-$('pwChange').addEventListener('submit',async e=>{e.preventDefault();const m=$('pwMsg');m.className='msg';
-  const nw=$('pwNew').value;if(nw.length<6){m.className='msg err';m.textContent='새 비밀번호는 6자 이상이어야 해요.';return;}
-  try{await openVault(store.get(),$('pwOld').value);}catch(err){m.className='msg err';m.textContent='지금 비밀번호가 맞지 않아요.';return;}
-  m.textContent='바꾸는 중…';
-  const salt=crypto.getRandomValues(new Uint8Array(16)),oldKey=S.key,newKey=await deriveKey(nw,salt);const recs=[];
-  try{for(const k of await idb.keys()){const r=await idb.get(k);try{recs.push([k,await encBytes(newKey,await decBytes(oldKey,r))]);}catch(e){}}}catch(e){}
-  S.key=newKey;S.salt=salt;
-  try{await persist();for(const [k,r] of recs)await idb.put(k,r);$('pwOld').value=$('pwNew').value='';m.className='msg ok';m.textContent='바꿨어요. 예전 백업 코드는 예전 비밀번호로 열려요.';renderVaultCode();}catch(err){m.className='msg err';m.textContent=err.message;}
+$('pwChange').addEventListener('submit',async e=>{e.preventDefault();if(securityBusy)return;
+  const m=$('pwMsg'),nw=$('pwNew').value;m.className='msg';
+  if(nw.length<12){m.className='msg err';m.textContent='새 비밀번호는 12자 이상이어야 해요.';return;}
+  securityBusy=true;$('appView').inert=true;const previous=S,staged=[];let committed=false;
+  const button=e.target.querySelector('[type="submit"],button');if(button)button.disabled=true;
+  try{
+    await openVault(store.get(),$('pwOld').value);
+    m.textContent='첨부파일을 안전하게 복사하는 중… 창을 닫지 마세요.';
+    const salt=crypto.getRandomValues(new Uint8Array(16)),key=await deriveKey(nw,salt),ids=new Map();
+    const entries=JSON.parse(JSON.stringify(previous.entries));
+    for(const entry of entries)for(const md of entry.media||[]){
+      const old=md.id;
+      if(!ids.has(old)){
+        const rec=await idb.get(old);if(!rec)throw new Error('missing');
+        const fresh=crypto.randomUUID();
+        await idb.put(fresh,await encBytes(key,await decBytes(previous.key,rec)));
+        staged.push(fresh);ids.set(old,fresh);
+      }
+      md.id=ids.get(old);
+    }
+    const next={key,salt,entries};
+    const encrypted=await encryptVault(key,salt,{entries});
+    if(!store.set(encrypted))throw new Error('storage');
+    committed=true;S=next;clearUrls();
+    for(const old of ids.keys())await idb.del(old).catch(()=>{});
+    $('pwOld').value=$('pwNew').value='';renderVaultCode();
+    m.className='msg ok';m.textContent='변경했어요. 예전 백업은 예전 비밀번호로 열립니다. 새 백업도 저장해 주세요.';
+  }catch(err){
+    if(!committed){S=previous;for(const id of staged)await idb.del(id).catch(()=>{});}
+    m.className='msg err';m.textContent='변경하지 못했어요. 기존 비밀번호와 기록은 유지됩니다. 현재 비밀번호·저장 공간·첨부파일을 확인해 주세요.';
+  }finally{$('appView').inert=false;securityBusy=false;if(button)button.disabled=false;armIdle();}
 });
 function renderVaultCode(){$('backupOut').value=store.get()||'';}
 
