@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나눔터 관리 · 마음 서랍</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://maeum-seorap.vercel.app; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root{--bg:#ECEEF4;--surface:#FFFFFF;--sunk:#F4F5F9;--ink:#1E2231;--muted:#636A7E;--line:#D5D9E4;--accent:#474DA0;--danger:#B83A32;--care:#FFF4E5}
+@media (prefers-color-scheme: dark){:root{--bg:#13151D;--surface:#1C1F2A;--sunk:#171922;--ink:#E7E9F1;--muted:#9BA1B5;--line:#2D3142;--accent:#A2A7F2;--danger:#F08A80;--care:#2B2418;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Gowun Dodum",system-ui,sans-serif;padding:20px max(16px,env(safe-area-inset-left,0px)) 48px}
+[hidden]{display:none!important}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2{font-family:"Gowun Batang",serif;margin:0}
+.panel,.item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.item.crisis{background:var(--care)}
+.meta{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.body{white-space:pre-wrap;overflow-wrap:anywhere}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,input{font:inherit;color:inherit}
+input{background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 12px;cursor:pointer}
+.btn.ok{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.no{color:var(--danger);border-color:var(--danger)}
+.msg{font-size:13px;color:var(--danger)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>나눔터 관리</h1>
+  <div id="login" class="panel">
+    <label for="key">운영자 비밀번호</label>
+    <div class="row"><input id="key" type="password" autocomplete="current-password"><button class="btn ok" id="go">열기</button></div>
+    <p id="lmsg" class="msg"></p>
+  </div>
+  <div id="main" hidden>
+    <div class="row"><button class="btn" id="reload">새로고침</button><button class="btn" id="out">잠그기</button></div>
+    <h2>승인 대기</h2><div id="queue" class="wrap"></div>
+    <h2>신고된 공개 글</h2><div id="reported" class="wrap"></div>
+  </div>
+</div>
+<script>
+(()=>{
+const API=location.hostname==='maeum-seorap.vercel.app'?'':'https://maeum-seorap.vercel.app';
+const $=id=>document.getElementById(id);
+const el=(t,a={},k=[])=>{const e=document.createElement(t);for(const x in a){if(x==='text')e.textContent=a[x];else e.setAttribute(x,a[x]);}for(const c of [].concat(k))if(c!=null)e.append(c);return e;};
+let key='';try{key=sessionStorage.getItem('ms.admin')||'';}catch(e){}
+const call=async(method,body)=>{const r=await fetch(API+'/api/admin',{method,headers:{'Content-Type':'application/json','X-Admin-Key':key},body:body?JSON.stringify(body):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'오류가 났어요.');return j;};
+const label={review:'후기',board:'게시판'};
+function card(p,reported){
+  const b=(t,cls,action)=>{const x=el('button',{class:'btn '+cls,text:t});x.onclick=async()=>{x.disabled=true;try{await call('POST',{id:p.id,action});it.remove();}catch(e){alert(e.message);x.disabled=false;}};return x;};
+  const it=el('div',{class:'item'+(p.crisis?' crisis':'')},[
+    el('div',{class:'meta'},[el('b',{text:`${label[p.kind]}${p.parent?' 댓글':''}`}),el('span',{text:p.nick}),el('span',{text:new Date(p.created).toLocaleString()}),el('span',{text:'작성자 '+p.author}),p.reports?el('span',{text:`신고 ${p.reports}회 · ${(p.reportReasons||[]).join(', ')}`}):null,p.crisis?el('b',{text:'⚠ 위기 표현 포함 — 공개 여부를 신중히 판단하고, 도움 안내 댓글을 고려해 주세요'}):null]),
+    p.title?el('b',{text:p.title}):null, el('div',{class:'body',text:p.body}),
+    el('div',{class:'row'},reported?[b('계속 공개','', 'dismiss'),b('숨기기','no','reject'),b('삭제','no','delete'),b('작성자 차단','no','block')]:[b('승인','ok','approve'),b('거절','no','reject'),b('삭제','no','delete'),b('작성자 차단','no','block')])
+  ]);return it;
+}
+async function load(){
+  const j=await call('GET');
+  $('queue').replaceChildren(...(j.queue.length?j.queue.map(p=>card(p,false)):[el('p',{text:'대기 중인 글이 없어요.'})]));
+  $('reported').replaceChildren(...(j.reported.length?j.reported.map(p=>card(p,true)):[el('p',{text:'신고된 글이 없어요.'})]));
+}
+async function enter(){try{await load();$('login').hidden=true;$('main').hidden=false;try{sessionStorage.setItem('ms.admin',key)}catch(e){}}catch(e){$('lmsg').textContent=e.message;}}
+$('go').onclick=()=>{key=$('key').value;$('key').value='';enter();};
+$('key').onkeydown=e=>{if(e.key==='Enter')$('go').click();};
+$('reload').onclick=()=>load().catch(e=>alert(e.message));
+$('out').onclick=()=>{key='';try{sessionStorage.removeItem('ms.admin')}catch(e){}location.reload();};
+if(key)enter();
+})();
+</script>
+</body>
+</html>

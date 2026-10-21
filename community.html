@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>이야기 나눔터 · 마음 서랍</title>
+<meta name="description" content="마음 서랍 후기와 서로의 마음을 나누는 상담 게시판">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://maeum-seorap.vercel.app; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="theme-color" content="#474DA0">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#ECEEF4; --surface:#FFFFFF; --sunk:#F4F5F9; --ink:#1E2231; --muted:#636A7E; --line:#D5D9E4;
+  --accent:#474DA0; --accent-ink:#FFFFFF; --danger:#B83A32; --care:#FFF4E5; --care-line:#F0C98A;
+  --f-display:"Gowun Batang","Nanum Myeongjo",serif; --f-ui:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{--bg:#13151D;--surface:#1C1F2A;--sunk:#171922;--ink:#E7E9F1;--muted:#9BA1B5;--line:#2D3142;--accent:#A2A7F2;--accent-ink:#15172A;--danger:#F08A80;--care:#2B2418;--care-line:#6B5631;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.65;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:26px}h2{font-size:19px}h3{font-size:16px}
+p{margin:0}
+a{color:var(--accent)}
+.muted{color:var(--muted)}.small{font-size:13px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:7px 14px;border-radius:9px;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-ink)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.care{background:var(--care);border:1px solid var(--care-line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.care b{font-size:15px}
+.care ul{margin:0;padding-left:18px;font-size:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+label.lbl{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+input[type=text],textarea,select{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size:16px;line-height:1.8}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:6px 8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.msg{font-size:13px;min-height:1.2em}
+.msg.err{color:var(--danger)}.msg.ok{color:var(--accent)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.item .meta{display:flex;gap:8px;align-items:baseline;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.item .meta b{color:var(--ink);font-size:13px}
+.item .body{font-family:var(--f-display);font-size:15.5px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:keep-all}
+.replies{border-left:3px solid var(--line);padding-left:12px;display:flex;flex-direction:column;gap:8px}
+.reply{display:flex;flex-direction:column;gap:2px}
+.empty{color:var(--muted);text-align:center;padding:24px 8px}
+.rules{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.report-box{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.report-box select{width:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>이야기 나눔터</h1><p class="muted small">마음 서랍을 쓰는 사람들이 남기는 후기와 서로의 이야기</p></div>
+    <a href="./" class="small">← 내 일기장으로</a>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-review" aria-selected="true">후기·의견</button>
+    <button role="tab" id="t-board" aria-selected="false">마음 나눔 게시판</button>
+    <button role="tab" id="t-rules" aria-selected="false">이용 원칙</button>
+  </nav>
+
+  <div id="careBox" class="care" hidden>
+    <b>지금 많이 힘들다면, 혼자 견디지 않아도 돼요</b>
+    <p class="small">이 게시판은 서로 마음을 나누는 곳이고 전문 상담은 아니에요. 바로 이야기할 사람이 필요하면 아래로 연락해 주세요.</p>
+    <ul>
+      <li>자살예방상담전화 <b>109</b> (24시간)</li>
+      <li>정신건강위기상담전화 <b>1577-0199</b></li>
+      <li>청소년 상담 <b>1388</b> · 위급할 때 <b>112 / 119</b></li>
+    </ul>
+  </div>
+
+  <section id="v-write" class="panel">
+    <h2 id="writeHead">후기 남기기</h2>
+    <p id="writeHelp" class="muted small">써 보니 좋았던 점, 불편했던 점, 있었으면 하는 기능을 편하게 남겨 주세요. 의견은 다음 업데이트에 반영할게요.</p>
+    <div class="field"><label class="lbl" for="nick">닉네임 (12자까지)</label><input id="nick" type="text" maxlength="12" autocomplete="off"></div>
+    <div class="field" id="titleField" hidden><label class="lbl" for="title">제목</label><input id="title" type="text" maxlength="60" autocomplete="off"></div>
+    <div class="field"><label class="lbl" for="body">내용</label><textarea id="body" maxlength="2000"></textarea></div>
+    <div class="hp" aria-hidden="true"><label>웹사이트<input id="website" type="text" tabindex="-1" autocomplete="off"></label></div>
+    <label class="row small"><input id="agree" type="checkbox"> 이용 원칙을 읽었고, 이름·연락처·학교·회사처럼 나를 알아볼 수 있는 정보는 쓰지 않을게요.</label>
+    <p id="writeMsg" class="msg"></p>
+    <div class="row"><button class="btn primary" id="send">올리기</button><span class="muted small">운영자가 확인한 뒤 공개돼요.</span></div>
+  </section>
+
+  <section id="v-list" class="list" aria-live="polite"></section>
+  <button class="btn" id="more" hidden>더 보기</button>
+
+  <section id="v-rules" class="panel" hidden>
+    <h2>이용 원칙</h2>
+    <ol class="rules">
+      <li>서로를 존중해요. 욕설·비하·혐오·조롱은 올릴 수 없어요.</li>
+      <li>연락처, SNS·메신저 아이디, 링크, 만남 제안은 금지예요. 사적 연락을 유도하는 글은 사기나 범죄로 이어질 수 있어 바로 삭제해요.</li>
+      <li>광고·홍보·금전 거래, 음란하거나 성적인 내용은 올릴 수 없어요.</li>
+      <li>나와 다른 사람의 개인정보(이름, 학교, 회사, 주소 등)는 쓰지 말아 주세요.</li>
+      <li>모든 글과 댓글은 운영자가 확인한 뒤 공개돼요. 문제가 되는 글은 신고해 주세요. 여러 번 신고된 글은 자동으로 가려져요.</li>
+      <li>원칙을 어기면 글이 삭제되고 글쓰기가 제한될 수 있어요. 위법한 게시물은 관련 법령에 따라 조치될 수 있어요.</li>
+      <li>마음 나눔 게시판은 전문 상담이 아니에요. 위급한 상황이면 109(자살예방상담전화), 1577-0199, 112·119로 연락해 주세요.</li>
+    </ol>
+    <p class="muted small">글을 지우고 싶으면 <a href="privacy.html">개인정보처리방침</a>의 문의 이메일로 알려 주세요.</p>
+  </section>
+</div>
+
+<script>
+(()=>{
+const API=location.hostname==='maeum-seorap.vercel.app'?'':'https://maeum-seorap.vercel.app';
+const $=id=>document.getElementById(id);
+const el=(t,a={},k=[])=>{const e=document.createElement(t);for(const x in a){if(x==='text')e.textContent=a[x];else e.setAttribute(x,a[x]);}for(const c of [].concat(k))if(c!=null)e.append(c);return e;};
+const fmt=ms=>{const d=new Date(ms);return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+const NICKS=['고요한 고양이','다정한 토끼','느긋한 곰','설레는 새','포근한 강아지','담담한 구름','반짝이는 별','산책하는 나비'];
+try{$('nick').value=localStorage.getItem('ms.nick')||NICKS[Math.floor(Math.random()*NICKS.length)];}catch(e){$('nick').value=NICKS[0];}
+const CRISIS=/(자살|죽고\s*싶|극단적\s*선택|자해|사라지고\s*싶|살기\s*싫|끝내고\s*싶)/;
+const HINTS=[[/01[016789][\s.-]?\d{3,4}[\s.-]?\d{4}/,'전화번호'],[/(오픈채팅|오픈톡|텔레그램|카톡\s*아이디|카톡\s*주세요|디엠\s*주세요|dm\s*주세요|연락\s*주세요)/i,'연락처나 개인 연락 유도'],[/(https?:|www\.|\.com|\.kr)/i,'링크']];
+
+let kind='review',page=0;
+function setTab(t){
+  for(const k of ['review','board','rules'])$('t-'+k).setAttribute('aria-selected',String(k===t));
+  $('v-rules').hidden=t!=='rules';$('v-write').hidden=t==='rules';$('v-list').hidden=t==='rules';$('more').hidden=true;
+  $('careBox').hidden=t!=='board';
+  if(t==='rules')return;
+  kind=t;$('titleField').hidden=kind!=='board';
+  $('writeHead').textContent=kind==='board'?'이야기 꺼내기':'후기 남기기';
+  $('writeHelp').textContent=kind==='board'?'요즘 마음이 어떤지, 고민이 있는지 편하게 적어 주세요. 다른 사람들이 따뜻한 댓글로 함께해요.':'써 보니 좋았던 점, 불편했던 점, 있었으면 하는 기능을 편하게 남겨 주세요. 의견은 다음 업데이트에 반영할게요.';
+  $('writeMsg').textContent='';page=0;load(true);
+}
+$('t-review').onclick=()=>setTab('review');$('t-board').onclick=()=>setTab('board');$('t-rules').onclick=()=>setTab('rules');
+
+async function api(path,opt){
+  const r=await fetch(API+path,{...opt,headers:{'Content-Type':'application/json'}});
+  let j={};try{j=await r.json();}catch(e){}
+  if(!r.ok)throw new Error(j.error||'지금은 연결이 안 돼요. 조금 뒤에 다시 해 주세요.');
+  return j;
+}
+
+function reportBox(id){
+  const sel=el('select',{'aria-label':'신고 이유'},['욕설·비하','연락처·만남 유도','광고·홍보','음란한 내용','개인정보 노출','기타'].map(x=>el('option',{text:x})));
+  const go=el('button',{class:'btn ghost small',type:'button',text:'신고하기'}),cancel=el('button',{class:'btn ghost small',type:'button',text:'취소'});
+  const box=el('div',{class:'report-box small'},[sel,go,cancel]);
+  go.onclick=async()=>{go.disabled=true;try{await api('/api/report',{method:'POST',body:JSON.stringify({id,reason:sel.value})});box.replaceChildren(el('span',{class:'muted',text:'신고했어요. 운영자가 확인할게요.'}));}catch(e){box.replaceChildren(el('span',{class:'msg err',text:e.message}));}};
+  cancel.onclick=()=>box.remove();
+  return box;
+}
+
+function card(p){
+  const rep=el('button',{class:'btn ghost small',type:'button',text:'신고'});
+  const it=el('article',{class:'item'},[
+    el('div',{class:'meta'},[el('b',{text:p.nick}),el('span',{text:fmt(p.created)})]),
+    p.title?el('h3',{text:p.title}):null,
+    el('div',{class:'body',text:p.body}),
+  ]);
+  const actions=el('div',{class:'row'},[rep]);
+  rep.onclick=()=>{if(!it.querySelector('.report-box'))actions.after(reportBox(p.id));};
+  if(p.kind==='board'){
+    const tog=el('button',{class:'btn ghost small',type:'button',text:`댓글 ${p.replies||0}`});
+    actions.prepend(tog);
+    let box=null;
+    tog.onclick=async()=>{
+      if(box){box.remove();box=null;return;}
+      box=el('div',{class:'replies'},[el('p',{class:'muted small',text:'불러오는 중…'})]);it.append(box);
+      try{const j=await api('/api/posts?parent='+encodeURIComponent(p.id));box.replaceChildren();
+        if(!j.items.length)box.append(el('p',{class:'muted small',text:'아직 댓글이 없어요. 따뜻한 한마디를 남겨 주세요.'}));
+        j.items.forEach(r=>{const rr=el('button',{class:'btn ghost small',type:'button',text:'신고'});const d=el('div',{class:'reply'},[el('div',{class:'meta'},[el('b',{text:r.nick}),el('span',{text:fmt(r.created)}),rr]),el('div',{class:'body',text:r.body})]);rr.onclick=()=>{if(!d.querySelector('.report-box'))d.append(reportBox(r.id));};box.append(d);});
+        const ta=el('textarea',{maxlength:'1000',placeholder:'공감과 응원을 담아 댓글을 남겨 주세요',style:'min-height:70px'});const sm=el('p',{class:'msg'});const sb=el('button',{class:'btn small',type:'button',text:'댓글 올리기'});
+        sb.onclick=async()=>{if(!$('agree').checked){sm.className='msg err';sm.textContent='위쪽 글쓰기 칸의 이용 원칙 동의에 먼저 체크해 주세요.';return;}sb.disabled=true;try{await api('/api/posts',{method:'POST',body:JSON.stringify({kind:'board',parent:p.id,nick:$('nick').value,body:ta.value})});ta.value='';sm.className='msg ok';sm.textContent='올렸어요. 운영자가 확인한 뒤 공개돼요.';}catch(e){sm.className='msg err';sm.textContent=e.message;}sb.disabled=false;};
+        box.append(ta,sm,el('div',{class:'row'},[sb]));
+      }catch(e){box.replaceChildren(el('p',{class:'msg err',text:e.message}));}
+    };
+  }
+  it.append(actions);
+  return it;
+}
+
+async function load(reset){
+  const L=$('v-list');if(reset)L.replaceChildren(el('p',{class:'empty',text:'불러오는 중…'}));
+  try{
+    const j=await api(`/api/posts?kind=${kind}&page=${page}`);
+    if(reset)L.replaceChildren();
+    if(reset&&!j.items.length)L.append(el('p',{class:'empty',text:kind==='board'?'아직 올라온 이야기가 없어요. 첫 이야기를 꺼내 주세요.':'아직 후기가 없어요. 첫 후기를 남겨 주세요.'}));
+    j.items.forEach(p=>L.append(card(p)));
+    $('more').hidden=!j.more;
+  }catch(e){L.replaceChildren(el('p',{class:'empty',text:e.message}));}
+}
+$('more').onclick=()=>{page++;load(false);};
+
+$('body').addEventListener('input',()=>{const v=$('body').value;if(CRISIS.test(v))$('careBox').hidden=false;const h=HINTS.find(([re])=>re.test(v));$('writeMsg').className=h?'msg err':'msg';$('writeMsg').textContent=h?`${h[1]}에 해당하는 내용은 올릴 수 없어요.`:'';});
+$('send').onclick=async()=>{
+  const m=$('writeMsg');m.className='msg err';
+  if(!$('agree').checked){m.textContent='이용 원칙에 동의해 주세요.';return;}
+  $('send').disabled=true;m.className='msg';m.textContent='올리는 중…';
+  try{
+    try{localStorage.setItem('ms.nick',$('nick').value)}catch(e){}
+    const j=await api('/api/posts',{method:'POST',body:JSON.stringify({kind,nick:$('nick').value,title:$('title').value,body:$('body').value,website:$('website').value})});
+    $('body').value='';$('title').value='';m.className='msg ok';m.textContent='올렸어요. 운영자가 확인한 뒤 공개돼요.';
+    if(j.crisis)$('careBox').hidden=false;
+  }catch(e){m.className='msg err';m.textContent=e.message;}
+  $('send').disabled=false;
+};
+const start=(location.hash||'').slice(1);setTab(['board','rules'].includes(start)?start:'review');
+})();
+</script>
+</body>
+</html>
