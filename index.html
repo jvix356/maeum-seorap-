@@ -18,6 +18,7 @@ img{max-width:100%}
 .site-foot a{color:var(--muted)}
 </style>
 
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
@@ -95,6 +96,10 @@ header.top{display:flex;justify-content:space-between;align-items:center;gap:12p
 .chips{display:flex;gap:6px;flex-wrap:wrap;min-height:30px;align-items:center}
 .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--sunk)}
 .chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.chip.main{border-color:var(--accent);background:var(--surface)}
+.deco{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--sunk)}
+.deco summary{cursor:pointer;font-weight:600}
+.deco-body{display:flex;flex-direction:column;gap:12px;padding-top:12px}
 .chip button{border:0;background:none;padding:0 0 0 2px;color:var(--muted);font-size:15px;line-height:1}
 input[type=range]{width:100%;accent-color:var(--accent)}
 .scale{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
@@ -212,10 +217,18 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <section id="v-write" class="panel fade">
     <div class="row" style="justify-content:space-between"><h2 id="writeTitle">오늘의 마음</h2><input id="eDate" type="date" style="width:auto"></div>
     <canvas id="previewArt" class="art" width="600" height="375" aria-label="고른 감정으로 그려진 그림"></canvas>
-    <div class="row" style="justify-content:space-between"><span class="muted small">단어마다 표정과 몸짓이 달라요. 먼저 고른 세 단어가 그림에 나오고, 세기를 올리면 더 크게 움직여요.</span></div>
+    <div class="row" style="justify-content:space-between"><span class="muted small">대표 감정이 크게, 나머지 감정은 고른 순서대로 작게 나와요. 세기를 올리면 더 크게 움직여요.</span></div>
+    <details class="deco" open><summary>그림 꾸미기</summary>
+      <div class="deco-body">
+        <div class="field"><span class="lbl">배경</span><div id="sceneChips" class="fams"></div></div>
+        <div class="field"><span class="lbl">동물 친구</span><div id="animalChips" class="fams"></div></div>
+        <div class="field"><span class="lbl">소품</span><div id="propChips" class="fams"></div></div>
+        <p class="muted small">동물 친구와 꽃, 화분, 풍선, 구름은 대표 감정에 따라 표정과 모양이 바뀌어요.</p>
+      </div>
+    </details>
 
     <div class="field">
-      <label class="lbl">지금 마음에 가장 가까운 단어 (최대 5개)</label>
+      <label class="lbl">지금 마음에 가까운 단어 (몇 개든 괜찮아요 · 단어를 누르면 대표 감정이 돼요)</label>
       <div id="chips" class="chips"></div>
     </div>
     <input id="search" type="text" placeholder="단어 검색 (예: 허전, 뿌듯)">
@@ -518,23 +531,222 @@ function drawChar(c,word,x,G,size,t,a,ph,popE){
   c.restore();
 }
 
-function drawArt(cv,words,intensity,seed,t=.6,popU=1){
+/* ---------- 배경 · 동물 · 소품 ---------- */
+const SCENES={auto:'자동 (감정 따라)',plain:'단색',field:'들판',room:'내 방',cafe:'카페',sea:'바다',rain:'비 오는 날',night:'밤하늘'};
+const FAM_SCENE={joy:'field',calm:'room',love:'cafe',sad:'rain',anger:'plain',anxiety:'night',shame:'room',tired:'night',mixed:'sea'};
+const ANIMALS={cat:'고양이',dog:'강아지',rabbit:'토끼',bear:'곰',bird:'새'};
+const ITEMS={flower:'꽃',plant:'화분',balloon:'풍선',cloud:'구름',rainbow:'무지개',star:'별',heart:'하트',butterfly:'나비',coffee:'커피',book:'책',cake:'케이크',gift:'선물'};
+const SKY=['cloud','rainbow','balloon','star','heart','bird'];
+const MOOD={joy:'happy',calm:'calm',love:'love',sad:'sad',anger:'angry',anxiety:'nervous',shame:'shy',tired:'sleepy',mixed:'confused'};
+const moodOf=ws=>ws.length?MOOD[WORD2FAM[ws[0]]]:'calm';
+
+function drawScene(c,scene,col,t,W,H){
+  const GT=H*.84;
+  const grad=(a,b)=>{const g=c.createLinearGradient(0,0,0,GT);g.addColorStop(0,a);g.addColorStop(1,b);return g;};
+  switch(scene){
+    case 'field':
+      c.fillStyle=grad('#BFE1F7','#EAF6FD');c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(255,214,107,.35)';c.beginPath();c.arc(W*.9,58,46,0,7);c.fill();c.fillStyle='#FFD66B';c.beginPath();c.arc(W*.9,58,28,0,7);c.fill();
+      c.fillStyle='#C6E6B3';c.beginPath();c.ellipse(W*.25,GT+10,W*.45,60,0,0,7);c.fill();c.beginPath();c.ellipse(W*.85,GT+15,W*.4,50,0,0,7);c.fill();
+      c.fillStyle='#A5D68F';c.fillRect(0,GT,W,H-GT);
+      c.strokeStyle='#86C273';c.lineWidth=2;for(let i=0;i<14;i++){const x=(i*47+13)%W,y=GT+12+(i*29)%40;c.beginPath();c.moveTo(x,y);c.lineTo(x-3,y-7);c.moveTo(x,y);c.lineTo(x+3,y-8);c.stroke();}
+      break;
+    case 'room':{
+      c.fillStyle=mix(col,'#FFFFFF',.84);c.fillRect(0,0,W,H);c.fillStyle='rgba(255,255,255,.35)';for(let x=0;x<W;x+=36)c.fillRect(x,0,14,GT);
+      const wx=W*.66,wy=34,ww=150,wh=110;c.fillStyle='#FFFFFF';c.fillRect(wx-6,wy-6,ww+12,wh+12);c.fillStyle='#CFE8FA';c.fillRect(wx,wy,ww,wh);
+      c.fillStyle='#FFFFFF';c.fillRect(wx+ww/2-3,wy,6,wh);c.fillRect(wx,wy+wh/2-3,ww,6);
+      c.fillStyle='#FFFFFF';c.fillRect(W*.1-4,50,70,54);c.fillStyle=mix(col,'#FFFFFF',.5);c.fillRect(W*.1,54,62,46);
+      c.fillStyle='#E6CDA8';c.fillRect(0,GT,W,H-GT);c.fillStyle='#FFFFFF';c.fillRect(0,GT-6,W,6);
+      c.strokeStyle='rgba(0,0,0,.06)';c.lineWidth=1;for(let y=GT+14;y<H;y+=14){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}
+      break;}
+    case 'cafe':{
+      c.fillStyle='#F3E4D2';c.fillRect(0,0,W,H);c.fillStyle='#E9D5BE';c.fillRect(0,GT-90,W,90);
+      c.fillStyle='#B98A5E';c.fillRect(W*.06,96,W*.3,6);
+      [[.09,'#FFFFFF',16],[.15,mix(col,'#FFFFFF',.3),16],[.22,'#FFFFFF',16],[.29,'#9CC9A0',22]].forEach(([px,cc,h])=>{c.fillStyle=cc;c.fillRect(W*px,96-h,16,h);});
+      const lx=W*.72;c.strokeStyle='#8B6B4F';c.lineWidth=2;c.beginPath();c.moveTo(lx,0);c.lineTo(lx,52);c.stroke();
+      c.fillStyle=`rgba(255,220,150,${.25+.08*Math.sin(t*2)})`;c.beginPath();c.moveTo(lx-26,74);c.lineTo(lx+26,74);c.lineTo(lx+70,GT);c.lineTo(lx-70,GT);c.closePath();c.fill();
+      c.fillStyle='#E7A95A';c.beginPath();c.moveTo(lx-26,74);c.lineTo(lx+26,74);c.lineTo(lx+12,50);c.lineTo(lx-12,50);c.closePath();c.fill();
+      c.fillStyle='#C99A6B';c.fillRect(0,GT,W,H-GT);c.fillStyle='#B5875A';c.fillRect(0,GT,W,5);
+      break;}
+    case 'sea':
+      c.fillStyle=grad('#C9E8F8','#EEF8FD');c.fillRect(0,0,W,H);c.fillStyle='#FFE29A';c.beginPath();c.arc(W*.82,150,26,0,7);c.fill();
+      c.fillStyle='#7EC4E3';c.fillRect(0,160,W,GT-160);
+      c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=2;
+      for(let r=0;r<4;r++){const y=180+r*32;c.beginPath();for(let x=-20;x<=W+20;x+=10){const yy=y+Math.sin(x*.05+t*1.5+r)*3;x<-10?c.moveTo(x,yy):c.lineTo(x,yy);}c.stroke();}
+      c.fillStyle='#F2DFB4';c.fillRect(0,GT,W,H-GT);
+      break;
+    case 'rain':
+      c.fillStyle=grad('#BFC8D4','#E1E5EB');c.fillRect(0,0,W,H);
+      c.fillStyle='#A9B3C1';[[.15,40,40],[.25,30,50],[.35,42,38],[.7,50,44],[.8,38,54],[.9,48,40]].forEach(([px,y,r])=>{c.beginPath();c.arc(W*px,y,r,0,7);c.fill();});
+      c.fillStyle='#B4BECB';c.fillRect(0,GT,W,H-GT);
+      c.fillStyle='rgba(150,170,200,.45)';c.beginPath();c.ellipse(W*.2,GT+30,50,7,0,0,7);c.fill();c.beginPath();c.ellipse(W*.75,GT+40,60,8,0,0,7);c.fill();
+      c.strokeStyle='rgba(100,130,180,.45)';c.lineWidth=1.5;
+      for(let i=0;i<46;i++){const x=(i*53.3)%W,y=((i*71+t*220)%(GT+20))-10;c.beginPath();c.moveTo(x,y);c.lineTo(x-3,y+12);c.stroke();}
+      break;
+    case 'night':
+      c.fillStyle=grad('#262C52','#454B80');c.fillRect(0,0,W,H);
+      for(let i=0;i<26;i++){const x=(i*97.1)%W,y=(i*53.7)%(GT-40),tw=.5+.5*Math.sin(t*2+i);c.fillStyle=`rgba(255,255,255,${.3+.6*tw})`;c.fillRect(x,y,2,2);}
+      c.fillStyle='rgba(255,231,163,.25)';c.beginPath();c.arc(W*.85,62,40,0,7);c.fill();c.fillStyle='#FFE7A3';c.beginPath();c.arc(W*.85,62,26,0,7);c.fill();
+      c.fillStyle='#2D335C';c.beginPath();c.arc(W*.85+11,55,22,0,7);c.fill();
+      c.fillStyle='#363C6A';c.fillRect(0,GT,W,H-GT);
+      break;
+    default:
+      c.fillStyle=mix(col,'#FFFFFF',.8);c.fillRect(0,0,W,H);c.fillStyle=mix(col,'#FFFFFF',.66);c.fillRect(0,GT,W,H-GT);
+  }
+}
+
+/* 동물 얼굴: 감정(mood)에 따라 바뀜 */
+function aFace(c,mood,x,y,r,t){
+  const PI=Math.PI,ex=r*.38,ey=y-r*.05,er=r*.11;
+  c.save();c.strokeStyle=INK;c.fillStyle=INK;c.lineWidth=Math.max(1.2,r*.09);c.lineCap='round';
+  const dot=xx=>{c.fillStyle=INK;c.beginPath();c.arc(xx,ey,er,0,7);c.fill();};
+  switch(mood){
+    case 'happy':for(const s of [-1,1]){c.beginPath();c.arc(x+s*ex,ey+er*1.2,er*1.5,PI*1.15,PI*1.85);c.stroke();}break;
+    case 'calm':for(const s of [-1,1]){c.beginPath();c.arc(x+s*ex,ey-er*.6,er*1.4,PI*.15,PI*.85);c.stroke();}break;
+    case 'love':c.fillStyle='#E8456B';for(const s of [-1,1])heart(c,x+s*ex,ey-er*1.3,er*1.5);break;
+    case 'sad':{for(const s of [-1,1])dot(x+s*ex);const u=((t*.5)%1+1)%1;drop(c,x+ex+er*.3,ey+er*2+u*r*.5,er*.9,1-u);break;}
+    case 'angry':for(const s of [-1,1]){dot(x+s*ex);c.beginPath();c.moveTo(x+s*ex-s*er*1.8,ey-er*1.4);c.lineTo(x+s*ex+s*er*1.6,ey-er*3);c.stroke();}break;
+    case 'nervous':for(const s of [-1,1]){c.fillStyle='#FFFFFF';c.beginPath();c.arc(x+s*ex,ey,er*1.7,0,7);c.fill();c.save();c.lineWidth*=.6;c.stroke();c.restore();c.fillStyle=INK;c.beginPath();c.arc(x+s*ex+Math.sin(t*11)*er*.4,ey,er*.7,0,7);c.fill();}drop(c,x+r*.85,y-r*.6,er*1.1,.9);break;
+    case 'shy':{const e=er*1.2;for(const s of [-1,1]){c.beginPath();c.moveTo(x+s*ex+s*e,ey-e);c.lineTo(x+s*ex-s*e,ey);c.lineTo(x+s*ex+s*e,ey+e);c.stroke();}break;}
+    case 'sleepy':for(const s of [-1,1]){c.beginPath();c.moveTo(x+s*ex-er*1.3,ey);c.lineTo(x+s*ex+er*1.3,ey);c.stroke();}break;
+    case 'confused':dot(x-ex);c.beginPath();c.moveTo(x+ex-er*1.3,ey);c.lineTo(x+ex+er*1.3,ey);c.stroke();break;
+  }
+  const ck={happy:.45,love:.55,shy:.8,calm:.3}[mood];
+  if(ck){c.fillStyle=`rgba(255,110,135,${ck})`;for(const s of [-1,1]){c.beginPath();c.ellipse(x+s*r*.6,ey+r*.32,r*.16,r*.1,0,0,7);c.fill();}}
+  c.restore();
+}
+
+function drawAnimal(c,kind,x,gy,s,t,mood,ph){
+  const S=Math.sin;let dy=0,sx=1,sy=1,rot=0;
+  switch(mood){
+    case 'happy':dy=-Math.abs(S(t*4+ph))*s*.35;break;
+    case 'calm':sy=1+S(t*1.5+ph)*.03;break;
+    case 'love':rot=S(t*1.5+ph)*.08;break;
+    case 'sad':sy=.93;break;
+    case 'angry':rot=S(t*30+ph)*.04;sx=1.08;break;
+    case 'nervous':dy=S(t*13+ph)*1.2;rot=S(t*9+ph)*.05;break;
+    case 'shy':rot=-.1;sx=sy=.92;break;
+    case 'sleepy':sy=.8;sx=1.1;break;
+    case 'confused':rot=.14+S(t*1.6+ph)*.05;break;
+  }
+  const col={cat:'#F3B979',dog:'#EAD6B8',rabbit:'#FFFFFF',bear:'#C49A72'}[kind],dark={cat:'#DB955C',dog:'#B98D5E',rabbit:'#F4B6C2',bear:'#9A7050'}[kind];
+  const down=mood==='sad'||mood==='shy'||mood==='sleepy',flat=mood==='angry',ol='rgba(43,41,53,.18)';
+  c.save();c.fillStyle='rgba(40,30,60,.12)';c.beginPath();c.ellipse(x,gy+1,s*.75,s*.14,0,0,7);c.fill();
+  c.translate(x,gy+dy);c.rotate(rot);c.scale(sx,sy);c.lineCap='round';
+  // 꼬리
+  if(kind==='cat'){c.strokeStyle=dark;c.lineWidth=s*(flat?.26:.16);c.beginPath();c.moveTo(s*.5,-s*.2);
+    if(down)c.quadraticCurveTo(s*1.0,-s*.05,s*1.15,-s*.08);else if(flat)c.quadraticCurveTo(s*.85,-s*.4,s*.8,-s*1.0);else c.quadraticCurveTo(s*1.05,-s*.3,s*.9+S(t*2+ph)*s*.12,-s*.95);c.stroke();}
+  if(kind==='dog'){c.save();c.translate(s*.5,-s*.45);c.rotate(down?1.1:mood==='happy'?-.6+S(t*16)*.5:-.4+S(t*3)*.15);c.fillStyle=dark;c.beginPath();c.ellipse(s*.2,0,s*.22,s*.08,0,0,7);c.fill();c.restore();}
+  if(kind==='rabbit'||kind==='bear'){c.fillStyle=kind==='rabbit'?'#FFFFFF':dark;c.strokeStyle=ol;c.lineWidth=1;c.beginPath();c.arc(s*.58,-s*.32,s*.13,0,7);c.fill();if(kind==='rabbit')c.stroke();}
+  // 몸통과 발
+  c.fillStyle=col;c.strokeStyle=ol;c.lineWidth=1;c.beginPath();c.ellipse(0,-s*.45,s*.6,s*.48,0,0,7);c.fill();if(kind==='rabbit')c.stroke();
+  for(const px of [-s*.25,s*.15]){c.fillStyle=col;c.beginPath();c.ellipse(px,-s*.06,s*.14,s*.09,0,0,7);c.fill();c.stroke();}
+  // 머리
+  const hr=s*.5,hx=mood==='sleepy'?-s*.35:0,hy=mood==='sleepy'?-s*.6:mood==='shy'?-s*.95:-s*1.05;
+  if(kind==='cat')for(const sd of [-1,1]){c.save();c.translate(hx+sd*hr*.55,hy-hr*.55);c.rotate(sd*(flat?1.0:down?.6:.15));c.fillStyle=col;c.beginPath();c.moveTo(-hr*.32,0);c.lineTo(hr*.32,0);c.lineTo(0,-hr*.75);c.closePath();c.fill();c.fillStyle='#F4B6C2';c.beginPath();c.moveTo(-hr*.16,-hr*.05);c.lineTo(hr*.16,-hr*.05);c.lineTo(0,-hr*.45);c.closePath();c.fill();c.restore();}
+  if(kind==='rabbit')for(const sd of [-1,1]){c.save();c.translate(hx+sd*hr*.35,hy-hr*.7);c.rotate(sd*(down?1.25:flat?.6:.12+S(t*2+sd)*.05));c.fillStyle=col;c.strokeStyle=ol;c.beginPath();c.ellipse(0,-hr*.7,hr*.22,hr*.75,0,0,7);c.fill();c.stroke();c.fillStyle='#F4B6C2';c.beginPath();c.ellipse(0,-hr*.7,hr*.1,hr*.55,0,0,7);c.fill();c.restore();}
+  if(kind==='bear')for(const sd of [-1,1]){c.fillStyle=col;c.beginPath();c.arc(hx+sd*hr*.7,hy-hr*.7,hr*.3,0,7);c.fill();c.fillStyle=dark;c.beginPath();c.arc(hx+sd*hr*.7,hy-hr*.7,hr*.15,0,7);c.fill();}
+  c.fillStyle=col;c.beginPath();c.arc(hx,hy,hr,0,7);c.fill();if(kind==='rabbit'){c.strokeStyle=ol;c.stroke();}
+  if(kind==='dog')for(const sd of [-1,1]){c.save();c.translate(hx+sd*hr*.85,hy-hr*.2);c.rotate(sd*(down?.05:mood==='happy'?-.5+S(t*8)*.1:-.25));c.fillStyle=dark;c.beginPath();c.ellipse(0,hr*.35,hr*.26,hr*.5,0,0,7);c.fill();c.restore();}
+  if(kind==='dog'||kind==='bear'){c.fillStyle=kind==='dog'?'#F6EADB':'#E3C4A2';c.beginPath();c.ellipse(hx,hy+hr*.4,hr*.35,hr*.25,0,0,7);c.fill();}
+  c.fillStyle=(kind==='rabbit'||kind==='cat')?'#E88A9C':INK;c.beginPath();c.ellipse(hx,hy+hr*.28,hr*.1,hr*.07,0,0,7);c.fill();
+  aFace(c,mood,hx,hy-hr*.05,hr,t);
+  // 머리 위 표시
+  const ax=hx+hr*.95,ay=hy-hr*1.35,u=((t*.4+ph*.3)%1+1)%1;
+  c.font=`700 ${Math.round(hr*.9)}px "IBM Plex Sans KR",sans-serif`;c.fillStyle=INK;
+  if(mood==='sleepy'){c.globalAlpha=1-u;c.fillText('z',ax+u*6,ay-u*10);c.globalAlpha=1;}
+  if(mood==='confused')c.fillText('?',ax,ay);
+  if(mood==='love'){c.fillStyle=`rgba(232,69,107,${1-u})`;heart(c,ax,ay-u*10,hr*.35);}
+  if(mood==='angry'){c.fillStyle='#FFFFFF';for(let i=0;i<2;i++){const v=((t*1.2+i*.5)%1+1)%1;c.globalAlpha=(1-v)*.9;c.beginPath();c.arc(hx+(i?1:-1)*hr*.7,hy-hr*1.2-v*8,hr*.18*(1+v),0,7);c.fill();}c.globalAlpha=1;}
+  if(mood==='happy'){c.fillStyle='rgba(242,181,58,.9)';star4(c,ax,ay+4,hr*.25+Math.abs(S(t*3))*hr*.15);}
+  c.restore();
+}
+
+function drawBird(c,x,y,s,t,mood){
+  const S=Math.sin;c.save();c.translate(x,y);if(mood==='confused')c.rotate(.2);
+  const flap=(mood==='sleepy'||mood==='sad')?.2:Math.abs(S(t*12));
+  c.save();c.scale(1,.3+flap*.9);c.fillStyle='#6FB3E0';c.beginPath();c.ellipse(-s*.1,-s*.4,s*.38,s*.3,-.5,0,7);c.fill();c.restore();
+  c.fillStyle='#8CC8F0';c.beginPath();c.arc(0,0,s*.5,0,7);c.fill();
+  c.fillStyle='#F5B342';c.beginPath();c.moveTo(s*.45,-s*.02);c.lineTo(s*.75,s*.06);c.lineTo(s*.45,s*.14);c.closePath();c.fill();
+  aFace(c,mood,s*.02,-s*.05,s*.5,t);
+  if(mood==='sleepy'){const u=((t*.4)%1+1)%1;c.globalAlpha=1-u;c.font=`700 ${Math.round(s*.45)}px sans-serif`;c.fillStyle=INK;c.fillText('z',s*.5+u*6,-s*.6-u*10);c.globalAlpha=1;}
+  if(mood==='love'){c.fillStyle='#E8456B';heart(c,s*.55,-s*.85,s*.16);}
+  c.restore();
+}
+
+/* 소품: 꽃·화분·풍선·구름은 감정에 따라 모양이 바뀜 */
+function drawProp(c,p,mood,t,W,H){
+  const S=Math.sin,PI=Math.PI,gy=H-5,droop=mood==='sad'||mood==='sleepy',gloomy=droop||mood==='nervous';
+  c.save();c.lineCap='round';c.lineJoin='round';
+  switch(p){
+    case 'cloud':{const x=((60+t*10)%(W+160))-80,y=58;c.fillStyle=gloomy?'#A7B0BE':'#FFFFFF';
+      for(const [dx,dy,r] of [[-26,4,18],[0,-6,24],[26,4,18]]){c.beginPath();c.arc(x+dx,y+dy,r,0,7);c.fill();}c.fillRect(x-26,y+4,52,18);
+      if(mood==='sad'){c.strokeStyle='rgba(110,170,235,.85)';c.lineWidth=2;for(let i=0;i<3;i++){const u=((t*1.2+i/3)%1+1)%1;c.globalAlpha=1-u;c.beginPath();c.moveTo(x-18+i*18,y+26+u*40);c.lineTo(x-20+i*18,y+34+u*40);c.stroke();}c.globalAlpha=1;}
+      break;}
+    case 'rainbow':['#F28B82','#FBBC71','#FDE27A','#8ED1A0','#8AB4F8'].forEach((cc,i)=>{c.strokeStyle=cc;c.globalAlpha=gloomy?.3:.75;c.lineWidth=6;c.beginPath();c.arc(W*.8,175,92-i*6,PI,0);c.stroke();});c.globalAlpha=1;break;
+    case 'balloon':{const x=W*.62+S(t*.9)*6,y=droop?150+S(t)*2:78+S(t*1.3)*7,rx=droop?13:17,ry=droop?11:21;
+      c.strokeStyle='rgba(60,60,80,.5)';c.lineWidth=1.2;c.beginPath();c.moveTo(x,y+ry);c.quadraticCurveTo(x+(droop?14:6)*S(t*2),y+ry+30,x+2,y+ry+(droop?40:62));c.stroke();
+      c.fillStyle='#F47C8E';c.beginPath();c.ellipse(x,y,rx,ry,droop?.4:0,0,7);c.fill();c.fillStyle='rgba(255,255,255,.5)';c.beginPath();c.ellipse(x-rx*.4,y-ry*.4,rx*.22,ry*.18,-.5,0,7);c.fill();break;}
+    case 'star':[[.42,40],[.55,24],[.5,70],[.05,30],[.33,22]].forEach(([px,y],i)=>{const tw=.5+.5*S(t*3+i*1.7);c.fillStyle=`rgba(242,181,58,${.4+.6*tw})`;star4(c,W*px,y,5+tw*4);});break;
+    case 'heart':for(let i=0;i<3;i++){const b=S(t*2+i*2)*5,s=(mood==='love'?10:7)-i;c.fillStyle=`rgba(232,69,107,${.85-i*.15})`;heart(c,W*(.46+i*.06),40+i*14+b,s);}break;
+    case 'bird':drawBird(c,W*.1+S(t*.8)*18,100+S(t*2)*8,26,t,mood);break;
+    case 'butterfly':{const x=W*.5+S(t*.7)*W*.38,y=110+S(t*1.9)*30,f=Math.abs(S(t*12));c.translate(x,y);
+      c.save();c.scale(f*.8+.2,1);c.fillStyle='#B79CF2';c.beginPath();c.ellipse(-7,-3,7,9,-.4,0,7);c.fill();c.beginPath();c.ellipse(7,-3,7,9,.4,0,7);c.fill();
+      c.fillStyle='#F7A1B5';c.beginPath();c.ellipse(-5,7,5,6,.3,0,7);c.fill();c.beginPath();c.ellipse(5,7,5,6,-.3,0,7);c.fill();c.restore();c.fillStyle=INK;c.fillRect(-1,-8,2,18);break;}
+    case 'flower':{const x=22,tx=droop?x+12:x+S(t*1.5)*2,ty=droop?gy-22:gy-34;c.strokeStyle='#6DB36B';c.lineWidth=2.5;c.beginPath();c.moveTo(x,gy);c.quadraticCurveTo(x,ty+(droop?-6:8),tx,ty);c.stroke();
+      c.fillStyle=mood==='angry'?'#F07A6A':'#F7A1B5';for(let i=0;i<5;i++){const a=i/5*PI*2+(droop?.6:0);c.beginPath();c.arc(tx+Math.cos(a)*6,ty+Math.sin(a)*6*(droop?.7:1),5,0,7);c.fill();}
+      c.fillStyle='#FFD66B';c.beginPath();c.arc(tx,ty,4,0,7);c.fill();break;}
+    case 'plant':{const x=W-24;c.fillStyle='#7CC08A';for(let i=0;i<5;i++){const a=(i-2)*(droop?.75:.42)+S(t*1.3+i)*.05;c.save();c.translate(x,gy-16);c.rotate(a);c.beginPath();c.ellipse(0,-14,5,14,0,0,7);c.fill();c.restore();}
+      c.fillStyle='#D98A5F';c.beginPath();c.moveTo(x-13,gy-18);c.lineTo(x+13,gy-18);c.lineTo(x+10,gy);c.lineTo(x-10,gy);c.closePath();c.fill();break;}
+    case 'book':{const x=160;c.fillStyle='#8AB4F8';c.fillRect(x-16,gy-10,32,10);c.fillStyle='#F6C26B';c.fillRect(x-13,gy-19,27,9);c.fillStyle='#FFFFFF';c.fillRect(x+12,gy-8,3,6);c.fillRect(x+11,gy-17,2,5);break;}
+    case 'coffee':{const x=206;c.strokeStyle='#FFFFFF';c.lineWidth=3;c.beginPath();c.arc(x+11,gy-11,5,-1.3,1.3);c.stroke();
+      c.fillStyle='#FFFFFF';c.beginPath();c.moveTo(x-11,gy-20);c.lineTo(x+11,gy-20);c.lineTo(x+9,gy);c.lineTo(x-9,gy);c.closePath();c.fill();c.strokeStyle='rgba(0,0,0,.15)';c.lineWidth=1;c.stroke();
+      c.fillStyle='#8B5E3C';c.beginPath();c.ellipse(x,gy-20,11,3,0,0,7);c.fill();
+      const n=mood==='angry'?3:mood==='sleepy'?0:2;c.strokeStyle='rgba(150,150,160,.7)';c.lineWidth=1.5;
+      for(let i=0;i<n;i++){const u=((t*.6+i/n)%1+1)%1,sx=x-4+i*5;c.globalAlpha=1-u;c.beginPath();c.moveTo(sx,gy-24-u*16);c.quadraticCurveTo(sx+4,gy-30-u*16,sx,gy-36-u*16);c.stroke();}c.globalAlpha=1;break;}
+    case 'cake':{const x=252;c.fillStyle='#F6D7B0';c.fillRect(x-15,gy-14,30,14);c.fillStyle='#FFFFFF';c.fillRect(x-15,gy-19,30,6);
+      c.fillStyle='#E8456B';c.beginPath();c.arc(x-5,gy-22,3,0,7);c.fill();c.fillStyle='#8AB4F8';c.fillRect(x+6,gy-30,2,11);
+      if(mood==='sad'){c.strokeStyle='rgba(150,150,160,.6)';c.lineWidth=1.2;c.beginPath();c.moveTo(x+7,gy-32);c.quadraticCurveTo(x+11,gy-36,x+7,gy-40);c.stroke();}
+      else{c.fillStyle='#FFB347';c.beginPath();c.ellipse(x+7,gy-33,2.4,3.4+S(t*12)*.6,0,0,7);c.fill();}break;}
+    case 'gift':{const x=300,lid=(mood==='happy'||mood==='love')?Math.max(0,S(t*3))*5:0;c.fillStyle='#8FB7F0';c.fillRect(x-12,gy-16,24,16);c.fillRect(x-13,gy-20-lid,26,5);
+      c.fillStyle='#F5C04A';c.fillRect(x-2,gy-16,4,16);c.fillRect(x-2,gy-20-lid,4,5);c.beginPath();c.ellipse(x-5,gy-23-lid,5,3.5,-.5,0,7);c.fill();c.beginPath();c.ellipse(x+5,gy-23-lid,5,3.5,.5,0,7);c.fill();break;}
+    case 'cat':drawAnimal(c,'cat',70,gy,25,t,mood,0);break;
+    case 'rabbit':drawAnimal(c,'rabbit',122,gy,23,t,mood,1);break;
+    case 'bear':drawAnimal(c,'bear',360,gy,25,t,mood,2);break;
+    case 'dog':drawAnimal(c,'dog',432,gy,25,t,mood,3);break;
+  }
+  c.restore();
+}
+
+function drawArt(cv,words,intensity,seed,t=.6,popU=1,deco){
   const c=cv.getContext('2d'),W=600,H=375;c.setTransform(cv.width/W,0,0,cv.height/H,0,0);
-  const ws=[...new Set(words)].filter(w=>WORD2FAM[w]).slice(0,3);
-  const main=ws.length?FAM[WORD2FAM[ws[0]]].col:null;
-  c.fillStyle=main?mix(main,'#FFFFFF',.8):'#E6E8EF';c.fillRect(0,0,W,H);
-  c.fillStyle=main?mix(main,'#FFFFFF',.66):'#D7DAE4';c.fillRect(0,H*.84,W,H*.16);
+  const ws=[...new Set(words||[])].filter(w=>WORD2FAM[w]);
+  const col=ws.length?FAM[WORD2FAM[ws[0]]].col:'#B8BDCB';
+  const sc=deco&&deco.scene&&deco.scene!=='auto'?deco.scene:(ws.length?FAM_SCENE[WORD2FAM[ws[0]]]:'plain');
+  const props=(deco&&deco.props)||[],mood=moodOf(ws);
   const a=(intensity||3)/3,ph=((seed||0)%1000)/160,popE=popU<1?Math.sin(popU*Math.PI):0,G=H*.86;
+  drawScene(c,sc,col,t,W,H);
+  props.filter(p=>SKY.includes(p)).forEach(p=>drawProp(c,p,mood,t,W,H));
   if(!ws.length){drawChar(c,'neutral',W/2,G,84,t,.6,ph,popE);
-    c.fillStyle='rgba(70,74,95,.7)';c.font='500 17px "IBM Plex Sans KR",sans-serif';c.textAlign='center';c.fillText('감정을 고르면 표정이 생겨요',W/2,52);return;}
-  const slots=ws.length===1?[[W/2,104]]:ws.length===2?[[W*.4,96],[W*.75,64]]:[[W/2,94],[W*.18,60],[W*.82,60]];
-  ws.map((w,i)=>({w,i})).reverse().forEach(({w,i})=>drawChar(c,w,slots[i][0],G,slots[i][1],t+i*.7,a,ph+i,popE));
+    c.font='500 16px "IBM Plex Sans KR",sans-serif';c.textAlign='center';const msg='감정을 고르면 표정이 생겨요',tw=c.measureText(msg).width;
+    c.fillStyle='rgba(255,255,255,.8)';c.beginPath();c.roundRect?c.roundRect(W/2-tw/2-14,34,tw+28,30,15):c.rect(W/2-tw/2-14,34,tw+28,30);c.fill();c.fillStyle='#4A4E62';c.fillText(msg,W/2,55);}
+  else if(ws.length===1)drawChar(c,ws[0],W/2,G,104,t,a,ph,popE);
+  else{
+    const rest=ws.slice(1),shown=rest.slice(0,9),extra=rest.length-shown.length,n=shown.length,per=n<=1?1:n<=2?2:3,x0=W*.58,aw=W*.38;
+    const items=shown.map((w,i)=>{const r=Math.floor(i/per),j=i%per,nr=Math.min(per,n-r*per),sp=aw/nr;
+      let size=n===1?62:n===2?54-i*6:Math.max(24,40-i*1.8);size*=Math.pow(.88,r);return{w,x:x0+sp*(j+.5),g:G-r*46,size,i,r};});
+    items.sort((p,q)=>q.r-p.r).forEach(o=>drawChar(c,o.w,o.x,o.g,o.size,t+(o.i+1)*.7,a,ph+o.i+1,popE));
+    drawChar(c,ws[0],W*.3,G,100,t,a,ph,popE);
+    if(extra>0){c.font='700 15px "IBM Plex Sans KR",sans-serif';c.textAlign='center';c.fillStyle='rgba(255,255,255,.85)';c.beginPath();c.arc(W*.95,G-150,17,0,7);c.fill();c.fillStyle=INK;c.fillText('+'+extra,W*.95,G-145);}
+  }
+  props.filter(p=>!SKY.includes(p)&&p!=='butterfly').forEach(p=>drawProp(c,p,mood,t,W,H));
+  if(props.includes('butterfly'))drawProp(c,'butterfly',mood,t,W,H);
 }
 function drawMini(cv,word,size=28){const c=cv.getContext('2d');c.setTransform(cv.width/100,0,0,cv.height/100,0,0);c.clearRect(0,0,100,100);drawChar(c,word,50,size>28?94:90,size,.6,1,0,0);}
 
 /* 움직이는 그림 */
 const live=new Set();
-function frame(cv,ts){const s=cv._get();const u=cv._popAt?Math.min(1,(ts-cv._popAt)/600):1;drawArt(cv,s.words,s.intensity,s.seed,reduceMotion?.6:ts/1000,reduceMotion?1:u);}
+function frame(cv,ts){const s=cv._get();const u=cv._popAt?Math.min(1,(ts-cv._popAt)/600):1;drawArt(cv,s.words,s.intensity,s.seed,reduceMotion?.6:ts/1000,reduceMotion?1:u,s.deco);}
 function animate(cv,get){cv._get=get;live.add(cv);frame(cv,performance.now());}
 function loop(ts){for(const cv of live){if(!cv.isConnected){live.delete(cv);continue;}if(!cv.getClientRects().length)continue;frame(cv,ts);}requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
@@ -587,8 +799,9 @@ const GUIDE=`<h3>마음 서랍 사용법</h3>
 <p class="small">하루를 마치며 5분, 오늘 내 마음에 이름을 붙여 주는 일기장이에요.</p>
 <ol>
 <li><b>비밀번호 만들기</b><br>처음 한 번만 정하면 돼요. 이 비밀번호가 일기장의 열쇠예요.</li>
-<li><b>감정 단어 고르기</b><br>'쓰기'에서 기쁨, 평온, 슬픔 같은 분류를 눌러 보고, 지금 마음에 가장 가까운 단어를 5개까지 골라요. 단어마다 짧은 뜻풀이가 있어서 헷갈릴 때 도움이 돼요. 검색창에 '허전'처럼 적어서 찾아도 돼요.</li>
+<li><b>감정 단어 고르기</b><br>'쓰기'에서 기쁨, 평온, 슬픔 같은 분류를 눌러 보고, 지금 마음에 가까운 단어를 몇 개든 골라요. 가장 큰 마음은 단어 칩을 눌러 '대표'로 정하면 그림에 크게 나와요. 단어마다 짧은 뜻풀이가 있어서 헷갈릴 때 도움이 돼요. 검색창에 '허전'처럼 적어서 찾아도 돼요.</li>
 <li><b>세기 정하기</b><br>살짝부터 아주 강하게까지 골라요. 세기가 클수록 캐릭터가 더 크게 움직여요.</li>
+<li><b>그림 꾸미기</b><br>배경과 동물 친구, 소품을 골라 그림을 꾸며요. 동물과 꽃, 풍선은 감정에 따라 표정과 모양이 바뀌어요.</li>
 <li><b>이야기 적기</b><br>한 줄 제목과 그날 있었던 일을 편하게 적어요. 사진이나 짧은 영상도 10개까지 함께 넣을 수 있어요.</li>
 <li><b>서랍에 넣기</b><br>저장하면 고른 감정의 캐릭터가 일기와 함께 담겨요.</li>
 <li><b>달력으로 돌아보기</b><br>'기록'의 달력에 날마다 가장 많이 고른 감정 캐릭터가 나타나요. 빈 날짜를 누르면 그날 일기를 바로 쓸 수 있어서, 지난 날을 채워 넣기도 좋아요.</li>
@@ -683,10 +896,17 @@ $('mediaIn').onchange=async()=>{const files=[...$('mediaIn').files];$('mediaIn')
 let curFam='joy',lastPicked=null;
 function resetDraft(entry){
   pending.forEach((b,id)=>dropUrl(id));pending.clear();
-  draft=entry?{...entry,emotions:[...entry.emotions],media:[...(entry.media||[])]}:{id:null,date:today(),emotions:[],intensity:3,title:'',body:'',seed:newSeed(),media:[]};
+  draft=entry?{...entry,emotions:[...entry.emotions],media:[...(entry.media||[])],scene:entry.scene||'auto',props:[...(entry.props||[])]}:{id:null,date:today(),emotions:[],intensity:3,title:'',body:'',seed:newSeed(),media:[],scene:'auto',props:[]};
   $('eDate').value=draft.date;$('intensity').value=draft.intensity;$('eTitle').value=draft.title;$('eBody').value=draft.body;$('search').value='';
   setWriteTitle();$('saveBtn').textContent=entry?'고친 내용 저장':'서랍에 넣기';$('cancelEdit').hidden=!entry;$('saveMsg').textContent='';
-  renderPicker();renderMediaEdit();
+  renderPicker();renderMediaEdit();renderDeco();
+}
+function renderDeco(){
+  const mk=(box,map,isOn,onTap)=>{box.replaceChildren();for(const k in map){const b=el('button',{type:'button',class:'fam','aria-pressed':String(isOn(k))},[map[k]]);b.onclick=()=>{onTap(k);$('previewArt')._popAt=performance.now();renderDeco();};box.append(b);}};
+  const tog=k=>{draft.props=draft.props.includes(k)?draft.props.filter(x=>x!==k):[...draft.props,k];};
+  mk($('sceneChips'),SCENES,k=>draft.scene===k,k=>{draft.scene=k;});
+  mk($('animalChips'),ANIMALS,k=>draft.props.includes(k),tog);
+  mk($('propChips'),ITEMS,k=>draft.props.includes(k),tog);
 }
 function setWriteTitle(){$('writeTitle').textContent=draft.id?'기록 고치기':(draft.date===today()?'오늘의 마음':fmtDate(draft.date)+'의 마음');}
 function writeOn(date){if(!draft||draft.id||(!draft.body&&!draft.title&&!draft.emotions.length&&!draft.media.length))resetDraft();draft.date=date;$('eDate').value=date;setWriteTitle();showTab('write');}
@@ -696,7 +916,7 @@ function renderPicker(){
   const chips=$('chips');chips.replaceChildren();
   if(!draft.emotions.length)chips.append(el('span',{class:'muted small',text:'아직 고른 단어가 없어요'}));
   draft.emotions.forEach(w=>{const x=el('button',{type:'button','aria-label':w+' 빼기',text:'×'});x.onclick=()=>{draft.emotions=draft.emotions.filter(v=>v!==w);$('previewArt')._popAt=performance.now();renderPicker();};
-    chips.append(el('span',{class:'chip'+(w===lastPicked?' boing':'')},[el('i',{style:'background:'+FAM[WORD2FAM[w]].col}),w,x]));});
+    const ch=el('span',{class:'chip'+(w===lastPicked?' boing':'')+(draft.emotions[0]===w?' main':''),title:'눌러서 대표 감정으로'},[el('i',{style:'background:'+FAM[WORD2FAM[w]].col}),draft.emotions[0]===w?'대표 · '+w:w,x]);ch.style.cursor='pointer';ch.onclick=()=>{draft.emotions=[w,...draft.emotions.filter(v=>v!==w)];lastPicked=w;$('previewArt')._popAt=performance.now();renderPicker();};chips.append(ch);});
   const fams=$('fams');fams.replaceChildren();
   const q=$('search').value.trim();
   for(const k in FAM){const b=el('button',{type:'button',class:'fam','aria-pressed':String(!q&&k===curFam)},[el('span',{class:'dot',style:'background:'+FAM[k].col}),FAM[k].name]);
@@ -705,7 +925,7 @@ function renderPicker(){
   let list=[];if(q){for(const k in FAM)for(const [w,d] of FAM[k].words)if(w.includes(q)||d.includes(q))list.push([w,d,k]);}else list=FAM[curFam].words.map(([w,d])=>[w,d,curFam]);
   if(!list.length)words.append(el('p',{class:'muted small',text:'맞는 단어가 없어요. 다른 말로 찾아보세요.'}));
   list.forEach(([w,d,k])=>{const on=draft.emotions.includes(w);const b=el('button',{type:'button',class:'word'+(w===lastPicked?' boing':''),'aria-pressed':String(on),style:'border-left-color:'+FAM[k].col},[el('canvas',{width:88,height:88,'aria-hidden':'true'}),el('div',{},[el('b',{text:w}),el('span',{text:d})])]);drawMini(b.firstChild,w);
-    b.onclick=()=>{if(on)draft.emotions=draft.emotions.filter(v=>v!==w);else{if(draft.emotions.length>=5){$('saveMsg').className='msg err';$('saveMsg').textContent='단어는 5개까지 고를 수 있어요.';return;}draft.emotions.push(w);lastPicked=w;}$('previewArt')._popAt=performance.now();$('saveMsg').textContent='';renderPicker();};
+    b.onclick=()=>{if(on)draft.emotions=draft.emotions.filter(v=>v!==w);else{draft.emotions.push(w);lastPicked=w;}$('previewArt')._popAt=performance.now();$('saveMsg').textContent='';renderPicker();};
     words.append(b);});
   lastPicked=null;
 }
@@ -730,7 +950,7 @@ function sorted(){return [...S.entries].sort((a,b)=>b.date.localeCompare(a.date)
 let calMonth=null,calDay=null;
 function topWord(list){const cnt={},order=[];list.forEach(e=>e.emotions.forEach(w=>{if(!(w in cnt)){cnt[w]=0;order.push(w);}cnt[w]++;}));
   let best=null;order.forEach(w=>{if(best===null||cnt[w]>cnt[best])best=w;});return best?{w:best,n:cnt[best]}:null;}
-function makeCard(e){const cv=el('canvas',{width:300,height:188});drawArt(cv,e.emotions,e.intensity,e.seed);
+function makeCard(e){const cv=el('canvas',{width:300,height:188});drawArt(cv,e.emotions,e.intensity,e.seed,.6,1,{scene:e.scene,props:e.props});
   const card=el('button',{class:'card',type:'button'},[cv,el('div',{class:'meta'},[el('span',{class:'date',text:fmtDate(e.date)+((e.media||[]).length?` · 사진·영상 ${e.media.length}`:'')}),el('span',{class:'t',text:e.title||e.emotions.join(' · ')}),
     el('div',{class:'chips',style:'min-height:0'},e.emotions.map(w=>el('span',{class:'chip',style:'font-size:12px;padding:1px 8px'},[el('i',{style:'background:'+FAM[WORD2FAM[w]].col}),w]))),
     e.body?el('span',{class:'ex',text:e.body}):null])]);
@@ -782,7 +1002,7 @@ function openDetail(id){
   for(const k of ['write','list','vault','help'])$('v-'+k).hidden=true;
   for(const k of ['write','list','vault','help'])$('tab-'+k).setAttribute('aria-selected',String(k==='list'));
   const v=$('v-detail');v.hidden=false;v.replaceChildren();
-  const cv=el('canvas',{class:'art',width:600,height:375});animate(cv,()=>({words:e.emotions,intensity:e.intensity,seed:e.seed}));cv._popAt=performance.now();
+  const cv=el('canvas',{class:'art',width:600,height:375});animate(cv,()=>({words:e.emotions,intensity:e.intensity,seed:e.seed,deco:{scene:e.scene,props:e.props}}));cv._popAt=performance.now();
   const back=el('button',{class:'btn ghost',text:'← 달력'});back.onclick=()=>{calMonth=e.date.slice(0,7);calDay=e.date;showTab('list');};
   const edit=el('button',{class:'btn',text:'고치기'});edit.onclick=()=>{resetDraft(e);for(const k of ['list','vault'])$('v-'+k).hidden=true;v.hidden=true;$('v-write').hidden=false;$('tab-write').setAttribute('aria-selected','true');$('tab-list').setAttribute('aria-selected','false');window.scrollTo({top:0});};
   const del=el('button',{class:'btn danger',text:'지우기'});
@@ -822,8 +1042,8 @@ function armIdle(){clearTimeout(idleT);if(S)idleT=setTimeout(lockNow,10*60*1000)
 ['pointerdown','keydown','scroll'].forEach(ev=>window.addEventListener(ev,armIdle,{passive:true}));
 
 if(!window.crypto||!crypto.subtle){$('noStorage').hidden=false;$('noStorage').querySelector('p').textContent='이 브라우저는 암호화 기능을 지원하지 않아요. 최신 크롬·사파리·엣지에서 열어 주세요.';}
-animate($('lockArt'),()=>({words:['설레는','고요한','그리운'],intensity:3,seed:7}));
-animate($('previewArt'),()=>draft?{words:draft.emotions,intensity:draft.intensity,seed:draft.seed}:{words:[],intensity:3,seed:1});
+animate($('lockArt'),()=>({words:['설레는','고요한','그리운'],intensity:3,seed:7,deco:{scene:'field',props:['cloud','butterfly','flower','cat','dog']}}));
+animate($('previewArt'),()=>draft?{words:draft.emotions,intensity:draft.intensity,seed:draft.seed,deco:{scene:draft.scene,props:draft.props}}:{words:[],intensity:3,seed:1});
 showLock();
 })();
 </script>
