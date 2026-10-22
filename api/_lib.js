@@ -82,7 +82,7 @@ function isAdmin(req) {
   return crypto.timingSafeEqual(a, b);
 }
 
-const publicView = p => ({ id: p.id, kind: p.kind, parent: p.parent || null, nick: p.nick, title: p.title || '', body: p.body, created: p.created, replies: p.replies || 0 });
+const publicView = p => ({ id: p.id, kind: p.kind, parent: p.parent || null, to: p.to || null, toNick: p.toNick || '', nick: p.nick, title: p.title || '', body: p.body, created: p.created, replies: p.replies || 0 });
 
 // 공개 글 속 개인정보는 거절 대신 자동으로 가려요. 가리기 전 원문은 저장하지 않아요.
 function maskPrivate(text) {

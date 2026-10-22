@@ -6,7 +6,25 @@ const { listen } = require('../lib/diary-ai.cjs');
 
 const KEEP = 365 * 86400; // 공개 글·댓글은 1년 뒤 자동 삭제
 const PER_DAY = { post: 5, comment: 20 }; // 접속 구분값당 하루
-const SITE_DAY = { review: 100, board: 100, comment: 300 }; // 사이트 전체 하루
+const SITE_DAY = { review: 100, board: 100, praise: 100, comment: 300 }; // 사이트 전체 하루
+const KINDS = ['review', 'board', 'praise']; // 후기·마음 나눔·칭찬 릴레이
+const THREAD = ['board', 'praise']; // 댓글·대댓글을 달 수 있는 게시판
+const EMOJIS = ['heart', 'empathy', 'praise', 'hug']; // ❤️ 좋아요 · 🤝 공감 · 👏 칭찬해요 · 🫂 토닥토닥
+const voterOf = (who, dev) => crypto.createHash('sha256').update(who + '|' + (dev || '')).digest('hex').slice(0, 24);
+async function metaFor(ids, voter) {
+  if (!ids.length) return {};
+  const cmds = [];
+  for (const id of ids) { cmds.push(['HGETALL', `react:${id}`], ['GET', `views:${id}`]); if (voter) for (const e of EMOJIS) cmds.push(['EXISTS', `reacted:${id}:${voter}:${e}`]); }
+  const r = await pipeline(cmds), out = {}; let i = 0;
+  for (const id of ids) {
+    const h = r[i++] || [], counts = {};
+    if (Array.isArray(h)) for (let k = 0; k < h.length; k += 2) counts[h[k]] = Math.max(0, Number(h[k + 1]) || 0); else if (h && typeof h === 'object') for (const k in h) counts[k] = Math.max(0, Number(h[k]) || 0);
+    const v = Number(r[i++]) || 0, mine = [];
+    if (voter) for (const e of EMOJIS) if (Number(r[i++])) mine.push(e);
+    out[id] = { r: counts, v, mine };
+  }
+  return out;
+}
 const kstDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 async function bump(key, ttl) { const n = await redis('INCR', key); if (n === 1) await redis('EXPIRE', key, ttl); return n; }
 
@@ -14,7 +32,7 @@ module.exports = async (req, res) => {
   if (cors(req, res)) return;
   try {
     if (req.method === 'GET') {
-      const kind = req.query.kind === 'board' ? 'board' : 'review';
+      const kind = KINDS.includes(req.query.kind) ? req.query.kind : 'review';
       const parent = req.query.parent ? String(req.query.parent).slice(0, 40) : null;
       if (parent) {
         const rawParent = await redis('GET', `post:${parent}`);
@@ -27,6 +45,8 @@ module.exports = async (req, res) => {
         : await redis('ZREVRANGE', key, page * size, page * size + size - 1);
       const raws = await pipeline(ids.map(id => ['GET', `post:${id}`]));
       const items = raws.filter(Boolean).map(s => JSON.parse(s)).filter(p => p.status === 'approved' && (p.ai || !check([p.nick, p.title, p.body].join(' ')))).map(p => ({ ...publicView(p), ai: !!p.ai }));
+      const meta = await metaFor(items.map(p => p.id), null);
+      for (const it of items) { it.r = meta[it.id].r; it.v = meta[it.id].v; }
       return send(res, 200, { items, more: ids.length === size });
     }
     if (req.method !== 'POST') return send(res, 405, { error: '지원하지 않는 요청이에요.' });
@@ -35,12 +55,34 @@ module.exports = async (req, res) => {
     const b = req.body || {};
     if (b.website) return send(res, 400, { error: '요청을 처리할 수 없어요.' }); // 봇 함정 칸
     const who = clientHash(req);
+    // 공감·조회수: 누른 사람은 접속 구분 해시+브라우저 구분값을 다시 변환한 값으로만 구분해요.
+    if (['react', 'view', 'meta'].includes(b.action)) {
+      const voter = voterOf(who, /^[a-f0-9]{32}$/.test(String(b.dev || '')) ? b.dev : '');
+      if (b.action === 'meta') return send(res, 200, { meta: await metaFor((Array.isArray(b.ids) ? b.ids : []).map(String).filter(x => /^[a-z0-9]{6,40}$/.test(x)).slice(0, 60), voter) });
+      const id = String(b.id || '').slice(0, 40), raw = await redis('GET', `post:${id}`);
+      if (!raw || JSON.parse(raw).status !== 'approved') return send(res, 404, { error: '글을 찾을 수 없어요.' });
+      const Y = 365 * 86400;
+      if (b.action === 'view') {
+        const fresh = await redis('SET', `viewseen:${id}:${voter}:${kstDay()}`, '1', 'NX', 'EX', 172800);
+        if (fresh) { const v = await redis('INCR', `views:${id}`); await redis('EXPIRE', `views:${id}`, Y); return send(res, 200, { v }); }
+        return send(res, 200, { v: Number(await redis('GET', `views:${id}`)) || 0 });
+      }
+      const emoji = String(b.emoji || '');
+      if (!EMOJIS.includes(emoji)) return send(res, 400, { error: '알 수 없는 공감이에요.' });
+      if (await bump(`reactrate:${voter}:${kstDay()}`, 86400) > 300) return send(res, 429, { error: '오늘은 공감을 충분히 눌렀어요. 내일 다시 눌러 주세요.' });
+      const mark = `reacted:${id}:${voter}:${emoji}`;
+      if (await redis('SET', mark, '1', 'NX', 'EX', Y)) await redis('HINCRBY', `react:${id}`, emoji, 1);
+      else { await redis('DEL', mark); await redis('HINCRBY', `react:${id}`, emoji, -1); }
+      await redis('EXPIRE', `react:${id}`, Y);
+      return send(res, 200, (await metaFor([id], voter))[id]);
+    }
     const dev = /^[a-f0-9]{32}$/.test(String(b.dev || '')) ? 'dev' + crypto.createHmac('sha256', process.env.HASH_SALT || process.env.ADMIN_PASSWORD || 'maeum').update('dev:' + b.dev).digest('hex').slice(0, 24) : null;
     for (const k of [who, dev].filter(Boolean)) { const bl = await redis('GET', `block:${k}`); if (bl) return send(res, 403, { error: bl === 'permanent' ? '운영 원칙 위반이 반복돼 영구 정지됐어요. 이의는 개인정보처리방침의 문의 이메일로 보내 주세요.' : '운영 원칙 위반으로 30일 동안 글쓰기가 제한됐어요.' }); }
     if (await bump(`rl:${who}`, 600) > 5) return send(res, 429, { error: '짧은 시간에 글을 너무 많이 썼어요. 10분 뒤에 다시 써 주세요.' });
 
-    const kind = b.kind === 'board' ? 'board' : 'review';
-    const parent = b.parent ? String(b.parent).slice(0, 40) : null;
+    const kind = KINDS.includes(b.kind) ? b.kind : 'review';
+    let parent = b.parent ? String(b.parent).slice(0, 40) : null, to = null;
+    const toNick = kind === 'praise' && !parent ? String(b.toNick || '').trim().slice(0, 12) : '';
     const nick = String(b.nick || '').trim().slice(0, 12) || '익명';
     const m1 = maskPrivate(parent || kind === 'review' ? '' : String(b.title || '').trim().slice(0, 60));
     const m2 = maskPrivate(String(b.body || '').trim().slice(0, 2000));
@@ -49,8 +91,13 @@ module.exports = async (req, res) => {
     if (kind === 'board' && !parent && title.length < 2) return send(res, 400, { error: '제목을 적어 주세요.' });
     if (/[가-힣]/.test(nick) === false && !/[a-z0-9]/i.test(nick)) return send(res, 400, { error: '닉네임을 확인해 주세요.' });
     if (parent) {
-      const pp = await redis('GET', `post:${parent}`);
-      if (!pp || (JSON.parse(pp).status !== 'approved' || JSON.parse(pp).parent || JSON.parse(pp).kind !== 'board')) return send(res, 404, { error: '댓글을 달 글을 찾을 수 없어요.' });
+      const pp = await redis('GET', `post:${parent}`), P = pp && JSON.parse(pp);
+      if (!P || P.status !== 'approved' || !THREAD.includes(P.kind)) return send(res, 404, { error: '댓글을 달 글을 찾을 수 없어요.' });
+      if (P.parent) { // 대댓글: 댓글에 답글을 달면 원글 아래에 두고, 어느 댓글에 단 답글인지(to) 기록해요. 한 단계까지만 들여 써요.
+        const rp = await redis('GET', `post:${P.parent}`);
+        if (!rp || JSON.parse(rp).status !== 'approved') return send(res, 404, { error: '댓글을 달 글을 찾을 수 없어요.' });
+        to = P.to || P.id; parent = P.parent;
+      }
     }
     // 1인 여러 닉네임 방지: 접속·브라우저 구분값마다 처음 닉네임 30일 고정, 닉네임도 처음 쓴 사람에게 30일 묶음
     { const n = nick.toLowerCase(), keys = [who, dev].filter(Boolean), T = 30 * 86400;
@@ -59,7 +106,7 @@ module.exports = async (req, res) => {
       for (const k of keys) { const l = await redis('GET', 'nicklock:' + k); if (l && l.toLowerCase() !== n) return send(res, 409, { error: `한 사람이 여러 닉네임을 쓰지 못하게, 30일 동안 처음 쓴 닉네임 "${l}"로만 쓸 수 있어요.` }); }
       for (const k of keys) await redis('SET', 'nicklock:' + k, nick, 'EX', T);
       await redis('SET', ownerKey, [...new Set([...(owner ? owner.split(',') : []), ...keys])].slice(0, 6).join(','), 'EX', T); }
-    const bad = check(`${nick} ${title.split('[가림]').join(' ')} ${body.split('[가림]').join(' ')}`);
+    const bad = check(`${nick} ${toNick} ${title.split('[가림]').join(' ')} ${body.split('[가림]').join(' ')}`);
     if (bad) return send(res, 400, { error: `${bad}에 해당하는 내용은 올릴 수 없어요. 고쳐서 다시 써 주세요.` });
 
     const day = kstDay(), slot = parent ? 'comment' : kind;
@@ -69,7 +116,7 @@ module.exports = async (req, res) => {
 
     const id = Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
     const crisis = CRISIS.test(`${title} ${body}`);
-    const post = { id, kind, parent, nick, title, body, created: Date.now(), status: 'approved', moderation: 'rules', reports: 0, who, dev, crisis, replies: 0 };
+    const post = { id, kind, parent, to, toNick, nick, title, body, created: Date.now(), status: 'approved', moderation: 'rules', reports: 0, who, dev, crisis, replies: 0 };
     await redis('SET', `post:${id}`, JSON.stringify(post), 'EX', KEEP);
     await redis('ZADD', parent ? `replies:${parent}` : `list:${kind}`, post.created, id);
     await redis('ZREMRANGEBYSCORE', parent ? `replies:${parent}` : `list:${kind}`, '-inf', Date.now() - KEEP * 1000);
