@@ -33,7 +33,7 @@ function cors(req, res) {
   if (o) res.setHeader('Access-Control-Allow-Origin', o);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Admin-Key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Admin-Key,Authorization');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   if (req.method === 'OPTIONS') { res.status(204).end(); return true; }
