@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>공지사항 · 마음 서랍</title><meta name="description" content="마음 서랍 이용 안내와 날짜별 업데이트 내역">
+<meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="theme-color" content="#474DA0"><link rel="stylesheet" href="fonts/fonts.css"><link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#ECEEF4; --surface:#FFFFFF; --sunk:#F4F5F9; --ink:#1E2231; --muted:#636A7E; --line:#D5D9E4;
+  --accent:#474DA0; --accent-ink:#FFFFFF; --danger:#B83A32; --care:#FFF4E5; --care-line:#F0C98A;
+  --f-display:"Gowun Batang","Nanum Myeongjo",serif; --f-ui:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{--bg:#13151D;--surface:#1C1F2A;--sunk:#171922;--ink:#E7E9F1;--muted:#9BA1B5;--line:#2D3142;--accent:#A2A7F2;--accent-ink:#15172A;--danger:#F08A80;--care:#2B2418;--care-line:#6B5631;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.65;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:26px}h2{font-size:19px}h3{font-size:16px}
+p{margin:0}
+a{color:var(--accent)}
+.muted{color:var(--muted)}.small{font-size:13px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:7px 14px;border-radius:9px;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-ink)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.care{background:var(--care);border:1px solid var(--care-line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.care b{font-size:15px}
+.care ul{margin:0;padding-left:18px;font-size:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+label.lbl{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+input[type=text],textarea,select{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size:16px;line-height:1.8}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:6px 8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.msg{font-size:13px;min-height:1.2em}
+.msg.err{color:var(--danger)}.msg.ok{color:var(--accent)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.item .meta{display:flex;gap:8px;align-items:baseline;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.item .meta b{color:var(--ink);font-size:13px}
+.item .body{font-family:var(--f-display);font-size:15.5px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:keep-all}
+.replies{border-left:3px solid var(--line);padding-left:12px;display:flex;flex-direction:column;gap:8px}
+.reply{display:flex;flex-direction:column;gap:2px}
+.empty{color:var(--muted);text-align:center;padding:24px 8px}
+.rules{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.report-box{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.report-box select{width:auto}
+
+.notice-list{margin:0;padding-left:22px}.notice-list li+li{margin-top:7px}.badge{display:inline-block;background:var(--sunk);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:12px}details summary{cursor:pointer;font-weight:bold}details[open] summary{margin-bottom:14px}.foot{display:flex;gap:16px;flex-wrap:wrap;font-size:13px}article h3{margin-top:8px}
+</style></head><body><main class="wrap">
+<header class="top"><div><h1>공지사항</h1><p class="muted small">마음 서랍 이용 안내와 업데이트 소식</p></div><a href="./">← 내 일기장으로</a></header>
+<section class="panel" aria-labelledby="guide-title"><span class="badge">고정 · 이용 안내</span><h2 id="guide-title">기록을 보관하기 전에 확인해 주세요</h2>
+<p>마음 서랍은 감정을 고르고 그림을 꾸미며 하루를 기록하는 개인 일기장이에요.</p>
+<details><summary>일기 보관·백업 안내</summary><ul class="notice-list">
+<li>개인 일기와 첨부파일은 이용 중인 기기의 브라우저에 암호화해 저장하며, 운영자 서버로 보내지 않아요.</li>
+<li>브라우저 데이터 삭제나 기기 변경 전에 백업해 주세요. 주소나 브라우저가 다르면 기록이 자동으로 연결되지 않아요.</li>
+<li>비밀번호를 잊으면 기존 기록을 복구하기 어려워요. 비밀번호와 백업 파일은 안전한 곳에 보관해 주세요.</li>
+</ul></details>
+<details><summary>이야기 나눔터 이용 안내</summary><ul class="notice-list">
+<li>나눔터에 직접 올린 글은 개인 일기와 별도로 서버에 저장돼요. 글과 댓글은 운영자 승인 후 누구나 볼 수 있어요.</li>
+<li>이름·연락처·학교·직장 등 자신이나 다른 사람을 알아볼 수 있는 정보는 적지 말아 주세요.</li>
+<li>욕설·협박·성적 접근·광고·연락처 교환·외부 만남 유도는 제한돼요. 불편 의견과 서로 다른 생각도 존중해 주세요.</li>
+<li>마음 나눔은 전문 상담을 대신하지 않아요. 현재 글쓰기·승인·공개 흐름을 최종 점검하고 있어요.</li>
+</ul></details>
+<p class="small muted">오류·개선 의견 및 게시글 삭제 요청: <a href="mailto:woon0q0@gmail.com">woon0q0@gmail.com</a><br>문의할 때 비밀번호나 개인 일기 원문은 보내지 말아 주세요.</p></section>
+<article class="panel" aria-labelledby="update-title"><span class="badge">업데이트 · <time datetime="2026-10-22">2026.10.22</time></span><h2 id="update-title">감정 선택과 그림 꾸미기가 달라졌어요</h2>
+<h3>추가된 기능</h3><ul class="notice-list"><li>배경 7종·동물 5종·소품 12종으로 그림을 꾸밀 수 있어요.</li><li>대표 감정에 따라 동물 표정과 일부 소품의 모습이 달라져요.</li><li>후기·마음 나눔 게시판과 공개 댓글 화면을 추가했어요. 운영자 승인·신고·도배 제한 기능을 마련했으며, 실제 이용 흐름은 최종 점검 중이에요.</li></ul>
+<h3>개선된 기능</h3><ul class="notice-list"><li>감정을 개수 제한 없이 선택할 수 있어요.</li><li>대표 감정은 크게, 나머지는 선택한 순서대로 작게 표시해요. 감정 칩을 누르면 대표 감정을 바꿀 수 있어요.</li><li>제목·일기 본문에는 고운바탕, 버튼·안내문에는 고운돋움을 적용했어요.</li><li>개인정보 안내와 글꼴 저작권 고지를 정비했어요.</li></ul>
+<h3>오류 수정·보안 보완</h3><ul class="notice-list"><li>잠금 시 화면과 입력값을 정리하도록 보완했어요.</li><li>새 비밀번호는 12자 이상으로 설정하며 기존 비밀번호도 계속 사용할 수 있어요.</li><li>비밀번호 변경에 실패해도 기존 일기와 첨부파일을 보존하도록 보완했어요.</li></ul>
+<p class="muted small">안드로이드 앱은 준비 예정이에요. 출시 소식은 공지사항으로 안내할게요.</p></article>
+<nav class="foot" aria-label="관련 페이지"><a href="./">내 일기장</a><a href="community.html">이야기 나눔터</a><a href="privacy.html">개인정보처리방침</a><a href="privacy.html#fonts">글꼴 저작권</a></nav>
+</main></body></html>
