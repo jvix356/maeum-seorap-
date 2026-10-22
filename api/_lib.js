@@ -29,7 +29,8 @@ async function pipeline(cmds) {
 
 function cors(req, res) {
   const o = req.headers.origin;
-  if (o && ALLOWED.includes(o)) res.setHeader('Access-Control-Allow-Origin', o);
+  if (o && !ALLOWED.includes(o)) { res.status(403).json({ error: '허용되지 않은 사이트의 요청이에요.' }); return true; }
+  if (o) res.setHeader('Access-Control-Allow-Origin', o);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Admin-Key');
@@ -62,7 +63,9 @@ const CRISIS = /(자살|죽고싶|죽고 싶|극단적선택|극단적 선택|�
 function check(text) {
   const raw = String(text || '');
   if (PHONE.test(raw)) return '전화번호';
-  const n = norm(raw);
+  if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(raw)) return '이메일 주소';
+  if (/(?:\d[\s-]?){13,19}/.test(raw)) return '카드번호 등 긴 숫자열';
+  const n = norm(raw.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, ''));
   for (const r of RULES) if (r.re.test(n) || r.re.test(raw.toLowerCase())) return r.why;
   return null;
 }

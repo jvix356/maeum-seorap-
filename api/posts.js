@@ -1,4 +1,4 @@
-// 공개 글 목록 보기(GET), 새 글·댓글 쓰기(POST) — 새 글은 운영자 승인 후 공개
+// 공개 글 목록 보기(GET), 새 글·댓글 쓰기(POST) — 자동 검사를 통과한 새 글은 즉시 공개
 const crypto = require('crypto');
 const { redis, pipeline, cors, clientHash, check, CRISIS, send, publicView } = require('./_lib');
 
@@ -8,6 +8,10 @@ module.exports = async (req, res) => {
     if (req.method === 'GET') {
       const kind = req.query.kind === 'board' ? 'board' : 'review';
       const parent = req.query.parent ? String(req.query.parent).slice(0, 40) : null;
+      if (parent) {
+        const rawParent = await redis('GET', `post:${parent}`);
+        if (!rawParent || JSON.parse(rawParent).status !== 'approved') return send(res, 404, { error: '글을 찾을 수 없어요.' });
+      }
       const key = parent ? `replies:${parent}` : `list:${kind}`;
       const page = Math.max(0, parseInt(req.query.page || '0', 10) || 0), size = 20;
       const ids = parent
@@ -20,7 +24,7 @@ module.exports = async (req, res) => {
     if (req.method !== 'POST') return send(res, 405, { error: '지원하지 않는 요청이에요.' });
 
     const b = req.body || {};
-    if (b.website) return send(res, 200, { ok: true, status: 'pending' }); // 봇 함정 칸
+    if (b.website) return send(res, 400, { error: '요청을 처리할 수 없어요.' }); // 봇 함정 칸
     const who = clientHash(req);
     if (await redis('EXISTS', `block:${who}`)) return send(res, 403, { error: '운영 원칙 위반으로 글쓰기가 제한됐어요.' });
     const n = await redis('INCR', `rl:${who}`);
@@ -36,17 +40,25 @@ module.exports = async (req, res) => {
     if (kind === 'board' && !parent && title.length < 2) return send(res, 400, { error: '제목을 적어 주세요.' });
     if (parent) {
       const pp = await redis('GET', `post:${parent}`);
-      if (!pp || JSON.parse(pp).status !== 'approved') return send(res, 404, { error: '댓글을 달 글을 찾을 수 없어요.' });
+      if (!pp || (JSON.parse(pp).status !== 'approved' || JSON.parse(pp).parent || JSON.parse(pp).kind !== 'board')) return send(res, 404, { error: '댓글을 달 글을 찾을 수 없어요.' });
     }
     const bad = check(`${nick} ${title} ${body}`);
     if (bad) return send(res, 400, { error: `${bad}에 해당하는 내용은 올릴 수 없어요. 고쳐서 다시 써 주세요.` });
 
     const id = Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
     const crisis = CRISIS.test(`${title} ${body}`);
-    const post = { id, kind, parent, nick, title, body, created: Date.now(), status: 'pending', reports: 0, who, crisis, replies: 0 };
+    const post = { id, kind, parent, nick, title, body, created: Date.now(), status: 'approved', moderation: 'rules', reports: 0, who, crisis, replies: 0 };
     await redis('SET', `post:${id}`, JSON.stringify(post));
-    await redis('ZADD', 'queue', post.created, id);
-    return send(res, 200, { ok: true, status: 'pending', crisis });
+    await redis('ZADD', parent ? `replies:${parent}` : `list:${kind}`, post.created, id);
+    if (parent) {
+      const rawParent = await redis('GET', `post:${parent}`);
+      if (rawParent) {
+        const p = JSON.parse(rawParent);
+        p.replies = (p.replies || 0) + 1;
+        await redis('SET', `post:${parent}`, JSON.stringify(p));
+      }
+    }
+    return send(res, 200, { ok: true, id, status: 'approved', crisis });
   } catch (e) {
     return send(res, e.status || 500, { error: e.status ? e.message : '잠시 문제가 생겼어요. 조금 뒤에 다시 해 주세요.' });
   }

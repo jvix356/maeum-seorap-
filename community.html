@@ -96,7 +96,7 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
     <div class="hp" aria-hidden="true"><label>웹사이트<input id="website" type="text" tabindex="-1" autocomplete="off"></label></div>
     <label class="row small"><input id="agree" type="checkbox"> 이용 원칙을 읽었고, 이름·연락처·학교·회사처럼 나를 알아볼 수 있는 정보는 쓰지 않을게요.</label>
     <p id="writeMsg" class="msg"></p>
-    <div class="row"><button class="btn primary" id="send">올리기</button><span class="muted small">운영자가 확인한 뒤 공개돼요.</span></div>
+    <div class="row"><button class="btn primary" id="send">올리기</button><span class="muted small">자동 검사를 통과하면 바로 공개돼요.</span></div>
   </section>
 
   <section id="v-list" class="list" aria-live="polite"></section>
@@ -109,7 +109,7 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
       <li>연락처, SNS·메신저 아이디, 링크, 만남 제안은 금지예요. 사적 연락을 유도하는 글은 사기나 범죄로 이어질 수 있어 바로 삭제해요.</li>
       <li>광고·홍보·금전 거래, 음란하거나 성적인 내용은 올릴 수 없어요.</li>
       <li>나와 다른 사람의 개인정보(이름, 학교, 회사, 주소 등)는 쓰지 말아 주세요.</li>
-      <li>모든 글과 댓글은 운영자가 확인한 뒤 공개돼요. 문제가 되는 글은 신고해 주세요. 여러 번 신고된 글은 자동으로 가려져요.</li>
+      <li>모든 글과 댓글은 자동 검사를 통과하면 바로 공개돼요. 문제가 되는 글은 신고해 주세요. 여러 번 신고된 글은 자동으로 가려져요.</li>
       <li>원칙을 어기면 글이 삭제되고 글쓰기가 제한될 수 있어요. 위법한 게시물은 관련 법령에 따라 조치될 수 있어요.</li>
       <li>마음 나눔 게시판은 전문 상담이 아니에요. 위급한 상황이면 109(자살예방상담전화), 1577-0199, 112·119로 연락해 주세요.</li>
     </ol>
@@ -177,7 +177,7 @@ function card(p){
         if(!j.items.length)box.append(el('p',{class:'muted small',text:'아직 댓글이 없어요. 따뜻한 한마디를 남겨 주세요.'}));
         j.items.forEach(r=>{const rr=el('button',{class:'btn ghost small',type:'button',text:'신고'});const d=el('div',{class:'reply'},[el('div',{class:'meta'},[el('b',{text:r.nick}),el('span',{text:fmt(r.created)}),rr]),el('div',{class:'body',text:r.body})]);rr.onclick=()=>{if(!d.querySelector('.report-box'))d.append(reportBox(r.id));};box.append(d);});
         const ta=el('textarea',{maxlength:'1000',placeholder:'공감과 응원을 담아 댓글을 남겨 주세요',style:'min-height:70px'});const sm=el('p',{class:'msg'});const sb=el('button',{class:'btn small',type:'button',text:'댓글 올리기'});
-        sb.onclick=async()=>{if(!$('agree').checked){sm.className='msg err';sm.textContent='위쪽 글쓰기 칸의 이용 원칙 동의에 먼저 체크해 주세요.';return;}sb.disabled=true;try{await api('/api/posts',{method:'POST',body:JSON.stringify({kind:'board',parent:p.id,nick:$('nick').value,body:ta.value})});ta.value='';sm.className='msg ok';sm.textContent='올렸어요. 운영자가 확인한 뒤 공개돼요.';}catch(e){sm.className='msg err';sm.textContent=e.message;}sb.disabled=false;};
+        sb.onclick=async()=>{if(!$('agree').checked){sm.className='msg err';sm.textContent='위쪽 글쓰기 칸의 이용 원칙 동의에 먼저 체크해 주세요.';return;}sb.disabled=true;const submitted=ta.value;try{await api('/api/posts',{method:'POST',body:JSON.stringify({kind:'board',parent:p.id,nick:$('nick').value,body:ta.value})});ta.value='';sm.className='msg ok';sm.textContent='댓글이 공개됐어요.'; const count=Number(tog.textContent.match(/\d+/)?.[0]||0)+1; tog.textContent='댓글 '+count; box.prepend(el('div',{class:'reply'},[el('div',{class:'meta'},[el('b',{text:$('nick').value})]),el('div',{class:'body',text:submitted})]));}catch(e){sm.className='msg err';sm.textContent=e.message;}sb.disabled=false;};
         box.append(ta,sm,el('div',{class:'row'},[sb]));
       }catch(e){box.replaceChildren(el('p',{class:'msg err',text:e.message}));}
     };
@@ -206,7 +206,7 @@ $('send').onclick=async()=>{
   try{
     try{localStorage.setItem('ms.nick',$('nick').value)}catch(e){}
     const j=await api('/api/posts',{method:'POST',body:JSON.stringify({kind,nick:$('nick').value,title:$('title').value,body:$('body').value,website:$('website').value})});
-    $('body').value='';$('title').value='';m.className='msg ok';m.textContent='올렸어요. 운영자가 확인한 뒤 공개돼요.';
+    $('body').value='';$('title').value='';m.className='msg ok';m.textContent='글이 공개됐어요.';page=0;await load(true);
     if(j.crisis)$('careBox').hidden=false;
   }catch(e){m.className='msg err';m.textContent=e.message;}
   $('send').disabled=false;
