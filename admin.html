@@ -30,7 +30,7 @@ input{background:var(--sunk);border:1px solid var(--line);border-radius:10px;pad
 </head>
 <body>
 <div class="wrap">
-  <h1>나눔터 관리</h1>
+  <h1>의견·권리 요청 관리</h1>
   <div id="login" class="panel">
     <label for="key">운영자 비밀번호</label>
     <div class="row"><input id="key" type="password" autocomplete="current-password"><button class="btn ok" id="go">열기</button></div>
@@ -38,7 +38,7 @@ input{background:var(--sunk);border:1px solid var(--line);border-radius:10px;pad
   </div>
   <div id="main" hidden>
     <div class="row"><button class="btn" id="reload">새로고침</button><button class="btn" id="out">잠그기</button></div>
-    <h2>승인 대기</h2><div id="queue" class="wrap"></div>
+    <h2>비공개 개선 의견 (최신 100건)</h2><div id="feedback" class="wrap"></div><h2>기존 숨김 글</h2><div id="queue" class="wrap"></div>
     <h2>신고된 공개 글</h2><div id="reported" class="wrap"></div>
   </div>
 </div>
@@ -49,17 +49,18 @@ const $=id=>document.getElementById(id);
 const el=(t,a={},k=[])=>{const e=document.createElement(t);for(const x in a){if(x==='text')e.textContent=a[x];else e.setAttribute(x,a[x]);}for(const c of [].concat(k))if(c!=null)e.append(c);return e;};
 let key='';try{key=sessionStorage.getItem('ms.admin')||'';}catch(e){}
 const call=async(method,body)=>{const r=await fetch(API+'/api/admin',{method,headers:{'Content-Type':'application/json','X-Admin-Key':key},body:body?JSON.stringify(body):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'오류가 났어요.');return j;};
-const label={review:'후기',board:'게시판'};
+const label={review:'기존 후기',board:'기존 게시판',feedback:'비공개 의견'};
 function card(p,reported){
   const b=(t,cls,action)=>{const x=el('button',{class:'btn '+cls,text:t});x.onclick=async()=>{x.disabled=true;try{await call('POST',{id:p.id,action});it.remove();}catch(e){alert(e.message);x.disabled=false;}};return x;};
   const it=el('div',{class:'item'+(p.crisis?' crisis':'')},[
     el('div',{class:'meta'},[el('b',{text:`${label[p.kind]}${p.parent?' 댓글':''}`}),el('span',{text:p.nick}),el('span',{text:new Date(p.created).toLocaleString()}),el('span',{text:'작성자 '+p.author}),p.reports?el('span',{text:`신고 ${p.reports}회 · ${(p.reportReasons||[]).join(', ')}`}):null,p.crisis?el('b',{text:'⚠ 위기 표현 포함 — 공개 여부를 신중히 판단하고, 도움 안내 댓글을 고려해 주세요'}):null]),
     p.title?el('b',{text:p.title}):null, el('div',{class:'body',text:p.body}),
-    el('div',{class:'row'},reported?[b('계속 공개','', 'dismiss'),b('숨기기','no','reject'),b('삭제','no','delete'),b('작성자 차단','no','block')]:[b('승인','ok','approve'),b('거절','no','reject'),b('삭제','no','delete'),b('작성자 차단','no','block')])
+    el('div',{class:'row'},p.private?[b(p.status==='done'?'검토 완료':'검토 완료로 표시','ok','done'),b('삭제','no','delete')]:reported?[b('계속 공개','', 'dismiss'),b('숨기기','no','reject'),b('삭제','no','delete'),b('작성자 차단','no','block')]:[b('숨김 유지','no','reject'),b('거절','no','reject'),b('삭제','no','delete'),b('작성자 차단','no','block')])
   ]);return it;
 }
 async function load(){
   const j=await call('GET');
+  $('feedback').replaceChildren(...((j.feedback||[]).length?j.feedback.map(p=>card(p,false)):[el('p',{text:'접수된 의견이 없어요.'})]));
   $('queue').replaceChildren(...(j.queue.length?j.queue.map(p=>card(p,false)):[el('p',{text:'대기 중인 글이 없어요.'})]));
   $('reported').replaceChildren(...(j.reported.length?j.reported.map(p=>card(p,true)):[el('p',{text:'신고된 글이 없어요.'})]));
 }

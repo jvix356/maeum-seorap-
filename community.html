@@ -67,152 +67,25 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
 <body>
 <div class="wrap">
   <header class="top">
-    <div><h1>이야기 나눔터</h1><p class="muted small">마음 서랍을 쓰는 사람들이 남기는 후기와 서로의 이야기</p></div>
+    <div><h1>의견·기존 글</h1><p class="muted small">공개 게시판은 읽기 전용으로 보관하고, 새 의견은 운영자에게만 보내요.</p></div>
     <div class="row small"><a href="notices.html">공지사항</a><a href="./">← 내 일기장으로</a></div>
   </header>
 
-  <nav class="tabs" role="tablist">
-    <button role="tab" id="t-review" aria-selected="true">후기·의견</button>
-    <button role="tab" id="t-board" aria-selected="false">마음 나눔 게시판</button>
-    <button role="tab" id="t-rules" aria-selected="false">이용 원칙</button>
-  </nav>
-
-  <div id="careBox" class="care" hidden>
-    <b>지금 많이 힘들다면, 혼자 견디지 않아도 돼요</b>
-    <p class="small">이 게시판은 서로 마음을 나누는 곳이고 전문 상담은 아니에요. 바로 이야기할 사람이 필요하면 아래로 연락해 주세요.</p>
-    <ul>
-      <li>자살예방상담전화 <b>109</b> (24시간)</li>
-      <li>정신건강위기상담전화 <b>1577-0199</b></li>
-      <li>청소년 상담 <b>1388</b> · 위급할 때 <b>112 / 119</b></li>
-    </ul>
-  </div>
-
-  <section id="v-write" class="panel">
-    <h2 id="writeHead">후기 남기기</h2>
-    <p id="writeHelp" class="muted small">써 보니 좋았던 점, 불편했던 점, 있었으면 하는 기능을 편하게 남겨 주세요. 의견은 다음 업데이트에 반영할게요.</p>
-    <div class="field"><label class="lbl" for="nick">닉네임 (12자까지)</label><input id="nick" type="text" maxlength="12" autocomplete="off"></div>
-    <div class="field" id="titleField" hidden><label class="lbl" for="title">제목</label><input id="title" type="text" maxlength="60" autocomplete="off"></div>
-    <div class="field"><label class="lbl" for="body">내용</label><textarea id="body" maxlength="2000"></textarea></div>
-    <div class="hp" aria-hidden="true"><label>웹사이트<input id="website" type="text" tabindex="-1" autocomplete="off"></label></div>
-    <label class="row small"><input id="agree" type="checkbox"> 이용 원칙을 읽었고, 이름·연락처·학교·회사처럼 나를 알아볼 수 있는 정보는 쓰지 않을게요.</label>
-    <p id="writeMsg" class="msg"></p>
-    <div class="row"><button class="btn primary" id="send">올리기</button><span class="muted small">자동 검사를 통과하면 바로 공개돼요.</span></div>
-  </section>
-
-  <section id="v-list" class="list" aria-live="polite"></section>
-  <button class="btn" id="more" hidden>더 보기</button>
-
-  <section id="v-rules" class="panel" hidden>
-    <h2>이용 원칙</h2>
-    <ol class="rules">
-      <li>서로를 존중해요. 욕설·비하·혐오·조롱은 올릴 수 없어요.</li>
-      <li>연락처, SNS·메신저 아이디, 링크, 만남 제안은 금지예요. 사적 연락을 유도하는 글은 사기나 범죄로 이어질 수 있어 바로 삭제해요.</li>
-      <li>광고·홍보·금전 거래, 음란하거나 성적인 내용은 올릴 수 없어요.</li>
-      <li>나와 다른 사람의 개인정보(이름, 학교, 회사, 주소 등)는 쓰지 말아 주세요.</li>
-      <li>모든 글과 댓글은 자동 검사를 통과하면 바로 공개돼요. 문제가 되는 글은 신고해 주세요. 여러 번 신고된 글은 자동으로 가려져요.</li>
-      <li>원칙을 어기면 글이 삭제되고 글쓰기가 제한될 수 있어요. 위법한 게시물은 관련 법령에 따라 조치될 수 있어요.</li>
-      <li>마음 나눔 게시판은 전문 상담이 아니에요. 위급한 상황이면 109(자살예방상담전화), 1577-0199, 112·119로 연락해 주세요.</li>
-    </ol>
-    <p class="muted small">글을 지우고 싶으면 <a href="privacy.html">개인정보처리방침</a>의 문의 이메일로 알려 주세요.</p>
-  </section>
+  <section class="panel"><h2>비공개 개선 의견</h2><p class="muted small">좋았던 점이나 불편했던 점만 직접 적어 주세요. 공개 글·댓글 신규 접수는 중단했어요. 운영자만 확인하며 개별 답변이나 반영을 약속하지 않아요.</p>
+  <label for="opinion">의견 (5~1,000자)</label><textarea id="opinion" maxlength="1000" placeholder="개인 일기·감정 기록·타인의 글·개인정보·연락처는 보내지 마세요."></textarea>
+  <label class="row small"><input id="age" type="checkbox">만 14세 이상이에요.</label><label class="row small"><input id="rights" type="checkbox">직접 작성한 의견이며 타인의 글·개인정보를 포함하지 않았어요.</label><label class="row small"><input id="consent" type="checkbox">의견·접수 시각·접수번호 처리에 동의해요. 목적: 비공개 사용성 개선. 보관: 최대 90일 후 자동 만료. 도배 방지용 IP 해시는 24시간 후 만료해요. 동의하지 않아도 일기장을 이용할 수 있어요. <a href="privacy.html">처리방침</a></label>
+  <button id="send" class="btn primary">비공개로 보내기</button><p id="writeMsg" role="status"></p><p class="muted small">하루 전체 30건·접속 구분값당 3건까지 접수해요. 삭제 요청은 접수번호를 적어 <a href="mailto:woon0q0@gmail.com">운영자 이메일</a>로 보내 주세요. 비밀번호·일기 원문은 보내지 마세요.</p></section>
+  <section class="panel"><h2>참여 현황</h2><p id="visitStats" role="status">방문 통계 불러오는 중…</p><p class="muted small">방문 횟수는 실제 사람 수와 달라요. 새 비공개 의견의 건수·내용은 공개하지 않아요.</p><a href="privacy.html#visits">집계 기준 보기</a></section>
+  <details class="panel"><summary>기존 공개 글 보관함 · 제목을 눌러 읽기</summary><p class="muted small">신규 글·댓글은 중단했어요. 삭제 요청은 글 번호를 적어 운영자 이메일로 보내 주세요. 개인정보·연락처가 발견된 글은 신고할 수 있어요.</p><nav class="tabs" aria-label="보관함 종류"><button id="reviewTab">기존 후기·의견</button><button id="boardTab">기존 마음 나눔</button></nav><p id="archiveCount" role="status"></p><div id="archive" class="list"></div><nav id="pages" class="row" aria-label="보관함 페이지"></nav><button id="more" class="btn" hidden>다음 글 불러오기</button></details>
 </div>
 
 <script>
-(()=>{
-const API=location.hostname==='maeum-seorap.vercel.app'?'':'https://maeum-seorap.vercel.app';
-const $=id=>document.getElementById(id);
-const el=(t,a={},k=[])=>{const e=document.createElement(t);for(const x in a){if(x==='text')e.textContent=a[x];else e.setAttribute(x,a[x]);}for(const c of [].concat(k))if(c!=null)e.append(c);return e;};
-const fmt=ms=>{const d=new Date(ms);return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
-const NICKS=['고요한 고양이','다정한 토끼','느긋한 곰','설레는 새','포근한 강아지','담담한 구름','반짝이는 별','산책하는 나비'];
-try{$('nick').value=localStorage.getItem('ms.nick')||NICKS[Math.floor(Math.random()*NICKS.length)];}catch(e){$('nick').value=NICKS[0];}
-const CRISIS=/(자살|죽고\s*싶|극단적\s*선택|자해|사라지고\s*싶|살기\s*싫|끝내고\s*싶)/;
-const HINTS=[[/01[016789][\s.-]?\d{3,4}[\s.-]?\d{4}/,'전화번호'],[/(오픈채팅|오픈톡|텔레그램|카톡\s*아이디|카톡\s*주세요|디엠\s*주세요|dm\s*주세요|연락\s*주세요)/i,'연락처나 개인 연락 유도'],[/(https?:|www\.|\.com|\.kr)/i,'링크']];
-
-let kind='review',page=0;
-function setTab(t){
-  for(const k of ['review','board','rules'])$('t-'+k).setAttribute('aria-selected',String(k===t));
-  $('v-rules').hidden=t!=='rules';$('v-write').hidden=t==='rules';$('v-list').hidden=t==='rules';$('more').hidden=true;
-  $('careBox').hidden=t!=='board';
-  if(t==='rules')return;
-  kind=t;$('titleField').hidden=kind!=='board';
-  $('writeHead').textContent=kind==='board'?'이야기 꺼내기':'후기 남기기';
-  $('writeHelp').textContent=kind==='board'?'요즘 마음이 어떤지, 고민이 있는지 편하게 적어 주세요. 다른 사람들이 따뜻한 댓글로 함께해요.':'써 보니 좋았던 점, 불편했던 점, 있었으면 하는 기능을 편하게 남겨 주세요. 의견은 다음 업데이트에 반영할게요.';
-  $('writeMsg').textContent='';page=0;load(true);
-}
-$('t-review').onclick=()=>setTab('review');$('t-board').onclick=()=>setTab('board');$('t-rules').onclick=()=>setTab('rules');
-
-async function api(path,opt){
-  const r=await fetch(API+path,{...opt,headers:{'Content-Type':'application/json'}});
-  let j={};try{j=await r.json();}catch(e){}
-  if(!r.ok)throw new Error(j.error||'지금은 연결이 안 돼요. 조금 뒤에 다시 해 주세요.');
-  return j;
-}
-
-function reportBox(id){
-  const sel=el('select',{'aria-label':'신고 이유'},['욕설·비하','연락처·만남 유도','광고·홍보','음란한 내용','개인정보 노출','기타'].map(x=>el('option',{text:x})));
-  const go=el('button',{class:'btn ghost small',type:'button',text:'신고하기'}),cancel=el('button',{class:'btn ghost small',type:'button',text:'취소'});
-  const box=el('div',{class:'report-box small'},[sel,go,cancel]);
-  go.onclick=async()=>{go.disabled=true;try{await api('/api/report',{method:'POST',body:JSON.stringify({id,reason:sel.value})});box.replaceChildren(el('span',{class:'muted',text:'신고했어요. 운영자가 확인할게요.'}));}catch(e){box.replaceChildren(el('span',{class:'msg err',text:e.message}));}};
-  cancel.onclick=()=>box.remove();
-  return box;
-}
-
-function card(p){
-  const rep=el('button',{class:'btn ghost small',type:'button',text:'신고'});
-  const it=el('article',{class:'item'},[
-    el('div',{class:'meta'},[el('b',{text:p.nick}),el('span',{text:fmt(p.created)})]),
-    p.title?el('h3',{text:p.title}):null,
-    el('div',{class:'body',text:p.body}),
-  ]);
-  const actions=el('div',{class:'row'},[rep]);
-  rep.onclick=()=>{if(!it.querySelector('.report-box'))actions.after(reportBox(p.id));};
-  if(p.kind==='board'){
-    const tog=el('button',{class:'btn ghost small',type:'button',text:`댓글 ${p.replies||0}`});
-    actions.prepend(tog);
-    let box=null;
-    tog.onclick=async()=>{
-      if(box){box.remove();box=null;return;}
-      box=el('div',{class:'replies'},[el('p',{class:'muted small',text:'불러오는 중…'})]);it.append(box);
-      try{const j=await api('/api/posts?parent='+encodeURIComponent(p.id));box.replaceChildren();
-        if(!j.items.length)box.append(el('p',{class:'muted small',text:'아직 댓글이 없어요. 따뜻한 한마디를 남겨 주세요.'}));
-        j.items.forEach(r=>{const rr=el('button',{class:'btn ghost small',type:'button',text:'신고'});const d=el('div',{class:'reply'},[el('div',{class:'meta'},[el('b',{text:r.nick}),el('span',{text:fmt(r.created)}),rr]),el('div',{class:'body',text:r.body})]);rr.onclick=()=>{if(!d.querySelector('.report-box'))d.append(reportBox(r.id));};box.append(d);});
-        const ta=el('textarea',{maxlength:'1000',placeholder:'공감과 응원을 담아 댓글을 남겨 주세요',style:'min-height:70px'});const sm=el('p',{class:'msg'});const sb=el('button',{class:'btn small',type:'button',text:'댓글 올리기'});
-        sb.onclick=async()=>{if(!$('agree').checked){sm.className='msg err';sm.textContent='위쪽 글쓰기 칸의 이용 원칙 동의에 먼저 체크해 주세요.';return;}sb.disabled=true;const submitted=ta.value;try{await api('/api/posts',{method:'POST',body:JSON.stringify({kind:'board',parent:p.id,nick:$('nick').value,body:ta.value})});ta.value='';sm.className='msg ok';sm.textContent='댓글이 공개됐어요.'; const count=Number(tog.textContent.match(/\d+/)?.[0]||0)+1; tog.textContent='댓글 '+count; box.prepend(el('div',{class:'reply'},[el('div',{class:'meta'},[el('b',{text:$('nick').value})]),el('div',{class:'body',text:submitted})]));}catch(e){sm.className='msg err';sm.textContent=e.message;}sb.disabled=false;};
-        box.append(ta,sm,el('div',{class:'row'},[sb]));
-      }catch(e){box.replaceChildren(el('p',{class:'msg err',text:e.message}));}
-    };
-  }
-  it.append(actions);
-  return it;
-}
-
-async function load(reset){
-  const L=$('v-list');if(reset)L.replaceChildren(el('p',{class:'empty',text:'불러오는 중…'}));
-  try{
-    const j=await api(`/api/posts?kind=${kind}&page=${page}`);
-    if(reset)L.replaceChildren();
-    if(reset&&!j.items.length)L.append(el('p',{class:'empty',text:kind==='board'?'아직 올라온 이야기가 없어요. 첫 이야기를 꺼내 주세요.':'아직 후기가 없어요. 첫 후기를 남겨 주세요.'}));
-    j.items.forEach(p=>L.append(card(p)));
-    $('more').hidden=!j.more;
-  }catch(e){L.replaceChildren(el('p',{class:'empty',text:e.message}));}
-}
-$('more').onclick=()=>{page++;load(false);};
-
-$('body').addEventListener('input',()=>{const v=$('body').value;if(CRISIS.test(v))$('careBox').hidden=false;const h=HINTS.find(([re])=>re.test(v));$('writeMsg').className=h?'msg err':'msg';$('writeMsg').textContent=h?`${h[1]}에 해당하는 내용은 올릴 수 없어요.`:'';});
-$('send').onclick=async()=>{
-  const m=$('writeMsg');m.className='msg err';
-  if(!$('agree').checked){m.textContent='이용 원칙에 동의해 주세요.';return;}
-  $('send').disabled=true;m.className='msg';m.textContent='올리는 중…';
-  try{
-    try{localStorage.setItem('ms.nick',$('nick').value)}catch(e){}
-    const j=await api('/api/posts',{method:'POST',body:JSON.stringify({kind,nick:$('nick').value,title:$('title').value,body:$('body').value,website:$('website').value})});
-    $('body').value='';$('title').value='';m.className='msg ok';m.textContent='글이 공개됐어요.';page=0;await load(true);
-    if(j.crisis)$('careBox').hidden=false;
-  }catch(e){m.className='msg err';m.textContent=e.message;}
-  $('send').disabled=false;
-};
-const start=(location.hash||'').slice(1);setTab(['board','rules'].includes(start)?start:'review');
-})();
-</script>
-</body>
-</html>
+(()=>{'use strict';const API=location.hostname==='maeum-seorap.vercel.app'?'':'https://maeum-seorap.vercel.app';const $=id=>document.getElementById(id);const el=(t,text)=>{const n=document.createElement(t);if(text!=null)n.textContent=text;return n;};
+async function api(path,body){const r=await fetch(API+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const j=await r.json();if(!r.ok)throw Error(j.error||'연결을 확인해 주세요.');return j;}
+$('send').onclick=async()=>{if(!$('age').checked||!$('rights').checked||!$('consent').checked){$('writeMsg').textContent='아래 확인 항목을 선택해 주세요.';return;}$('send').disabled=true;try{const j=await api('/api/posts',{feedback:true,body:$('opinion').value,consent:true,rights:true,age14:true});$('opinion').value='';$('writeMsg').textContent=j.message+' 접수번호: '+j.id;}catch(e){$('writeMsg').textContent=e.message;}finally{$('send').disabled=false;}};
+let kind='review',rows=[],page=1,batch=0,hasMore=false,version=0,busy=false;
+function draw(){const max=Math.max(1,Math.ceil(rows.length/5));page=Math.min(page,max);$('archive').replaceChildren();$('archiveCount').textContent='불러온 공개 '+(kind==='review'?'후기·의견':'이야기')+' '+rows.length+'건'+(hasMore?' 이상':'')+' · '+page+' / '+max+'페이지';rows.slice((page-1)*5,page*5).forEach(p=>{const d=el('details'),summary=el('summary',p.title||'기존 후기 · '+new Date(p.created).toLocaleDateString('ko-KR')),b=el('article');b.className='item';const body=el('p',p.body);body.className='body';b.append(el('p',p.nick+' · 글 번호 '+p.id),body);const report=el('button','개인정보·권리 침해 신고');report.className='btn';report.onclick=async()=>{report.disabled=true;try{await api('/api/report',{id:p.id,reason:'개인정보·권리 침해 검토 요청'});report.textContent='신고를 접수했어요.';}catch(e){report.textContent=e.message;report.disabled=false;}};b.append(report);d.append(summary,b);$('archive').append(d);});const nav=$('pages');nav.replaceChildren();const add=(label,n)=>{const b=el('button',label);b.className='btn';b.onclick=()=>{page=n;draw();};if(n===page)b.setAttribute('aria-current','page');nav.append(b);};const start=Math.floor((page-1)/5)*5+1;if(page>1)add('이전',page-1);if(start>1)add('이전 5페이지',start-1);for(let n=start;n<=Math.min(max,start+4);n++)add(String(n),n);if(start+4<max)add('다음 5페이지',start+5);if(page<max)add('다음',page+1);$('more').hidden=!hasMore;$('more').disabled=busy;}
+async function load(reset){if(busy&&!reset)return;const v=reset?++version:version,k=kind;if(reset){rows=[];page=1;batch=0;}busy=true;$('archiveCount').textContent='불러오는 중…';try{const j=await api('/api/posts?kind='+k+'&page='+batch);if(v!==version)return;const seen=new Set(rows.map(p=>p.id));rows.push(...j.items.filter(p=>!seen.has(p.id)));batch++;hasMore=j.more;draw();}catch(e){if(v===version)$('archiveCount').textContent=e.message;}finally{if(v===version){busy=false;$('more').disabled=false;}}}
+$('reviewTab').onclick=()=>{kind='review';load(true);};$('boardTab').onclick=()=>{kind='board';load(true);};$('more').onclick=()=>load(false);load(true);
+api('/api/stats').then(j=>{$('visitStats').textContent='오늘 방문 '+j.today+'회 · 누적 방문 '+j.total+'회';}).catch(()=>{$('visitStats').textContent='방문 통계를 불러오지 못했어요.';});})();
+</script></body></html>

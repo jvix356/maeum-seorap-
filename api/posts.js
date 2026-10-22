@@ -18,47 +18,31 @@ module.exports = async (req, res) => {
         ? await redis('ZRANGE', key, page * size, page * size + size - 1)
         : await redis('ZREVRANGE', key, page * size, page * size + size - 1);
       const raws = await pipeline(ids.map(id => ['GET', `post:${id}`]));
-      const items = raws.filter(Boolean).map(s => JSON.parse(s)).filter(p => p.status === 'approved').map(publicView);
+      const items = raws.filter(Boolean).map(s => JSON.parse(s)).filter(p => p.status === 'approved' && !check([p.nick,p.title,p.body].join(' '))).map(publicView);
       return send(res, 200, { items, more: ids.length === size });
     }
     if (req.method !== 'POST') return send(res, 405, { error: '지원하지 않는 요청이에요.' });
 
     const b = req.body || {};
-    if (b.website) return send(res, 400, { error: '요청을 처리할 수 없어요.' }); // 봇 함정 칸
-    const who = clientHash(req);
-    if (await redis('EXISTS', `block:${who}`)) return send(res, 403, { error: '운영 원칙 위반으로 글쓰기가 제한됐어요.' });
-    const n = await redis('INCR', `rl:${who}`);
-    if (n === 1) await redis('EXPIRE', `rl:${who}`, 600);
-    if (n > 5) return send(res, 429, { error: '짧은 시간에 글을 너무 많이 썼어요. 10분 뒤에 다시 써 주세요.' });
+    if(b.feedback!==true || b.parent || b.kind==='board')return send(res,403,{error:'공개 글·댓글 신규 접수는 중단했어요. 비공개 개선 의견만 보낼 수 있어요.'});
+    if(b.website)return send(res,400,{error:'요청을 처리할 수 없어요.'});
+    if(b.consent!==true || b.age14!==true || b.rights!==true)return send(res,400,{error:'만 14세 이상·개인정보 처리 동의·직접 작성 여부를 확인해 주세요.'});
+    const body=String(b.body||'').trim();
+    if(body.length<5 || body.length>1000)return send(res,400,{error:'의견을 5~1,000자로 적어 주세요.'});
+    const bad=check(body);if(bad)return send(res,400,{error:bad+'에 해당하는 내용은 보내지 마세요.'});
+    const who=clientHash(req);
+    const n=await redis('INCR',`feedbackrate:${who}`);if(n===1)await redis('EXPIRE',`feedbackrate:${who}`,86400);
+    if(n>3)return send(res,429,{error:'오늘은 의견을 3개까지 보낼 수 있어요.'});
+    const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10),total=await redis('INCR','feedbackday:'+day);
+    if(total===1)await redis('EXPIRE','feedbackday:'+day,172800);
+    if(total>30)return send(res,429,{error:'오늘 의견 접수 한도가 찼어요. 다음 날 다시 남겨 주세요.'});
+    const id=Date.now().toString(36)+crypto.randomBytes(4).toString('hex');
+    const post={id,kind:'feedback',nick:'비공개 의견',title:'개선 의견',body,created:Date.now(),status:'private',private:true};
+    await redis('SET','post:'+id,JSON.stringify(post),'EX',90*86400);
+    await redis('ZADD','privatefeedback',post.created,id);
+    await redis('ZREMRANGEBYSCORE','privatefeedback','-inf',Date.now()-90*864e5);
+    return send(res,200,{ok:true,id,message:'운영자에게만 전달했어요. 의견 고마워요!'});
 
-    const kind = b.kind === 'board' ? 'board' : 'review';
-    const parent = b.parent ? String(b.parent).slice(0, 40) : null;
-    const nick = String(b.nick || '').trim().slice(0, 12) || '익명';
-    const title = parent || kind === 'review' ? '' : String(b.title || '').trim().slice(0, 60);
-    const body = String(b.body || '').trim().slice(0, 2000);
-    if (body.length < 5) return send(res, 400, { error: '내용을 5자 이상 적어 주세요.' });
-    if (kind === 'board' && !parent && title.length < 2) return send(res, 400, { error: '제목을 적어 주세요.' });
-    if (parent) {
-      const pp = await redis('GET', `post:${parent}`);
-      if (!pp || (JSON.parse(pp).status !== 'approved' || JSON.parse(pp).parent || JSON.parse(pp).kind !== 'board')) return send(res, 404, { error: '댓글을 달 글을 찾을 수 없어요.' });
-    }
-    const bad = check(`${nick} ${title} ${body}`);
-    if (bad) return send(res, 400, { error: `${bad}에 해당하는 내용은 올릴 수 없어요. 고쳐서 다시 써 주세요.` });
-
-    const id = Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
-    const crisis = CRISIS.test(`${title} ${body}`);
-    const post = { id, kind, parent, nick, title, body, created: Date.now(), status: 'approved', moderation: 'rules', reports: 0, who, crisis, replies: 0 };
-    await redis('SET', `post:${id}`, JSON.stringify(post));
-    await redis('ZADD', parent ? `replies:${parent}` : `list:${kind}`, post.created, id);
-    if (parent) {
-      const rawParent = await redis('GET', `post:${parent}`);
-      if (rawParent) {
-        const p = JSON.parse(rawParent);
-        p.replies = (p.replies || 0) + 1;
-        await redis('SET', `post:${parent}`, JSON.stringify(p));
-      }
-    }
-    return send(res, 200, { ok: true, id, status: 'approved', crisis });
   } catch (e) {
     return send(res, e.status || 500, { error: e.status ? e.message : '잠시 문제가 생겼어요. 조금 뒤에 다시 해 주세요.' });
   }

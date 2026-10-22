@@ -62,7 +62,8 @@ const CRISIS = /(자살|죽고싶|죽고 싶|극단적선택|극단적 선택|�
 
 function check(text) {
   const raw = String(text || '');
-  if (PHONE.test(raw)) return '전화번호';
+  const clean=raw.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g,'');
+  if (PHONE.test(clean)||/0[1-9]\d{0,2}[\s.-]?\d{3,4}[\s.-]?\d{4}/.test(clean)||/@[a-z0-9_]{2,}/i.test(clean)||/(?:로|길)\s*\d{1,4}(?:-\d{1,4})?/.test(clean)) return '전화번호';
   if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(raw)) return '이메일 주소';
   if (/(?:\d[\s-]?){13,19}/.test(raw)) return '카드번호 등 긴 숫자열';
   const n = norm(raw.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, ''));

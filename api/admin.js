@@ -12,21 +12,29 @@ module.exports = async (req, res) => {
     }
     if (req.method === 'GET') {
       const q = await redis('ZRANGE', 'queue', 0, 99);
+      const fb=await redis('ZREVRANGE','privatefeedback',0,99);
       const rp = await redis('ZREVRANGE', 'reported', 0, 49);
       const load = async ids => (await pipeline(ids.map(i => ['GET', `post:${i}`]))).filter(Boolean).map(s => JSON.parse(s));
       const strip = p => { const { who: _w, ...rest } = p; return { ...rest, author: (p.who || '').slice(0, 6) }; };
-      return send(res, 200, { queue: (await load(q)).map(strip), reported: (await load(rp)).map(strip) });
+      return send(res, 200, { feedback:(await load(fb)).map(strip), queue: (await load(q)).map(strip), reported: (await load(rp)).map(strip) });
     }
     const { id, action } = req.body || {};
     const raw = await redis('GET', `post:${String(id || '').slice(0, 40)}`);
     if (!raw) return send(res, 404, { error: '글을 찾을 수 없어요.' });
     const p = JSON.parse(raw);
+    if(p.private){
+      if(!['delete','done'].includes(action))return send(res,400,{error:'비공개 의견은 공개 승인할 수 없어요.'});
+      if(action==='delete'){await redis('DEL','post:'+p.id);await redis('ZREM','privatefeedback',p.id);}
+      else {p.status='done';const ttl=90*86400-Math.floor((Date.now()-p.created)/1000);if(ttl>0)await redis('SET','post:'+p.id,JSON.stringify(p),'EX',ttl);else await redis('DEL','post:'+p.id);}
+      return send(res,200,{ok:true});
+    }
     const listKey = p.parent ? `replies:${p.parent}` : `list:${p.kind}`;
     const bumpReplies = async d => {
       if (!p.parent) return;
       const pr = await redis('GET', `post:${p.parent}`);
       if (pr) { const pp = JSON.parse(pr); pp.replies = Math.max(0, (pp.replies || 0) + d); await redis('SET', `post:${p.parent}`, JSON.stringify(pp)); }
     };
+    if(action==='approve')return send(res,403,{error:'공개 게시판 운영을 중단했어요. 기존 글은 삭제·숨김만 처리할 수 있어요.'});
     if (action === 'approve') {
       const wasLive = p.status === 'approved' || p.status === 'hidden';
       p.status = 'approved'; p.reports = 0;
