@@ -34,7 +34,6 @@ module.exports = async (req, res) => {
       const pr = await redis('GET', `post:${p.parent}`);
       if (pr) { const pp = JSON.parse(pr); pp.replies = Math.max(0, (pp.replies || 0) + d); await redis('SET', `post:${p.parent}`, JSON.stringify(pp)); }
     };
-    if(action==='approve')return send(res,403,{error:'공개 게시판 운영을 중단했어요. 기존 글은 삭제·숨김만 처리할 수 있어요.'});
     if (action === 'approve') {
       const wasLive = p.status === 'approved' || p.status === 'hidden';
       p.status = 'approved'; p.reports = 0;
@@ -48,7 +47,12 @@ module.exports = async (req, res) => {
       if (p.status === 'approved' || p.status === 'hidden') await bumpReplies(-1);
       p.status = 'rejected';
       await redis('ZREM', listKey, p.id); await redis('ZREM', 'queue', p.id); await redis('ZREM', 'reported', p.id);
-      if (action === 'block' && p.who) await redis('SET', `block:${p.who}`, '1', 'EX', 60 * 60 * 24 * 180);
+      if (action === 'block' && p.who) {
+        // 제재 단계: 1·2번째 30일 작성 제한, 1년 안에 3번째면 영구 정지
+        const n = await redis('INCR', `blockcount:${p.who}`); if (n === 1) await redis('EXPIRE', `blockcount:${p.who}`, 365 * 86400);
+        if (n >= 3) await redis('SET', `block:${p.who}`, 'permanent'); else await redis('SET', `block:${p.who}`, '1', 'EX', 30 * 86400);
+        if (p.dev) await redis('SET', `block:${p.dev}`, n >= 3 ? 'permanent' : '1', ...(n >= 3 ? [] : ['EX', 30 * 86400]));
+      }
       if (action !== 'reject') { await redis('DEL', `post:${p.id}`); return send(res, 200, { ok: true }); }
     } else return send(res, 400, { error: '알 수 없는 동작이에요.' });
     await redis('SET', `post:${p.id}`, JSON.stringify(p));

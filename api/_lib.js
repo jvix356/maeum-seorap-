@@ -84,4 +84,20 @@ function isAdmin(req) {
 
 const publicView = p => ({ id: p.id, kind: p.kind, parent: p.parent || null, nick: p.nick, title: p.title || '', body: p.body, created: p.created, replies: p.replies || 0 });
 
-module.exports = { redis, pipeline, cors, clientHash, check, CRISIS, send, isAdmin, publicView };
+// 공개 글 속 개인정보는 거절 대신 자동으로 가려요. 가리기 전 원문은 저장하지 않아요.
+function maskPrivate(text) {
+  let t = String(text || '').normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '');
+  const found = new Set();
+  const M = [
+    ['전화번호', /0[1-9]\d{0,2}[\s.-]?\d{3,4}[\s.-]?\d{4}/g],
+    ['이메일', /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi],
+    ['긴 숫자(카드·계좌 등)', /(?:\d[\s-]?){10,19}\d/g],
+    ['링크', /(?:https?:\/\/|www\.)\S+|(?:[a-z0-9-]+\.)+(?:com|kr|net|io|ly|me|app)(?:\/\S*)?/gi],
+    ['SNS 아이디', /@[a-z0-9_.]{2,}/gi],
+    ['상세 주소', /[가-힣0-9]+(?:로|길)\s*\d{1,4}(?:-\d{1,4})?|\d+\s*동\s*\d+\s*호/g],
+  ];
+  for (const [label, re] of M) t = t.replace(re, () => { found.add(label); return '[가림]'; });
+  return { text: t, masked: [...found] };
+}
+
+module.exports = { redis, pipeline, cors, clientHash, check, CRISIS, send, isAdmin, publicView, maskPrivate };
