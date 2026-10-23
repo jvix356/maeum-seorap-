@@ -56,6 +56,16 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
 .react-bar button[aria-pressed=true]{border-color:var(--accent);font-weight:700}
 .views{font-size:12px;color:var(--muted)}
 .nested{margin-left:16px;padding-left:10px;border-left:2px dashed var(--line);display:flex;flex-direction:column;gap:6px}
+.post-row{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.post-row>summary{list-style:none;cursor:pointer;padding:12px 16px;display:flex;flex-direction:column;gap:4px}
+.post-row>summary::-webkit-details-marker{display:none}
+.post-row[open]>summary{border-bottom:1px dashed var(--line)}
+.row-title{font-family:var(--f-display);font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.row-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted)}
+.post-row>.item{border:0;border-radius:0 0 14px 14px}
+.notice-box>summary{cursor:pointer}
+.pager{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.pager .btn{min-width:38px}
 .to-nick{font-size:13px;color:var(--accent);font-weight:700}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .list{display:flex;flex-direction:column;gap:10px}
@@ -74,14 +84,25 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
 <body>
 <div class="wrap">
   <header class="top">
-    <div><h1>이야기 나눔터</h1><p class="muted small">마음 서랍을 쓰는 사람들이 남기는 후기와 서로의 이야기 · <a href="information.html">정보 나눔 →</a></p></div>
+    <div><h1>이야기 나눔터</h1><p class="muted small">마음 서랍을 쓰는 사람들이 남기는 후기와 서로의 이야기</p></div>
     <div class="row small"><a href="notices.html">공지사항</a><a href="./">← 내 일기장으로</a></div>
   </header>
+
+  <details class="panel notice-box" open>
+    <summary><b>📌 공지사항 · 이용 규칙·신고·제재</b></summary>
+    <ul class="rules">
+      <li><b>신고</b>: 글·댓글마다 "신고" 버튼이 있어요. 서로 다른 신고가 쌓이면 글이 자동으로 가려지고 운영자가 확인해요. 허위·보복 신고도 제재 대상이에요.</li>
+      <li><b>제재</b>: 위반이 확인되면 30일 글쓰기 제한, 1년 안에 세 번째 제한이면 영구 정지예요. 협박·성적 내용·개인정보 유포는 바로 제한할 수 있어요.</li>
+      <li><b>금지</b>: 욕설·비하, 연락처·만남 유도, 광고, 성적인 내용, 다른 사람에 대한 거짓 이야기(처벌받을 수 있어요), 한 사람이 여러 닉네임 쓰기.</li>
+      <li><b>힘들 때</b>: 자살예방상담전화 109(24시간), 정신건강위기상담전화 1577-0199, 청소년전화 1388, 위급하면 112·119. 이 게시판은 전문 상담이 아니에요.</li>
+    </ul>
+    <p class="small"><a href="notices.html">공지사항 전체 목록 보기 →</a></p>
+  </details>
 
   <nav class="tabs" role="tablist">
     <button role="tab" id="t-review" aria-selected="true">후기·의견</button>
     <button role="tab" id="t-board" aria-selected="false">마음 나눔 게시판</button>
-    <button role="tab" id="t-praise" aria-selected="false">칭찬 릴레이</button>
+    <button role="tab" id="t-praise" aria-selected="false">오구오구 칭찬 게시판</button>
     <button role="tab" id="t-rules" aria-selected="false">이용 원칙</button>
   </nav>
 
@@ -110,6 +131,8 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
   </section>
 
   <section id="v-list" class="list" aria-live="polite"></section>
+  <p id="listInfo" class="muted small" role="status"></p>
+  <nav id="pager" class="pager" aria-label="게시판 페이지"></nav>
   <button class="btn" id="more" hidden>더 보기</button>
 
   <section id="v-rules" class="panel" hidden>
@@ -147,12 +170,12 @@ let kind='review',page=0;
 let DEV='';try{DEV=localStorage.getItem('ms.dev')||'';if(!/^[a-f0-9]{32}$/.test(DEV)){DEV=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');localStorage.setItem('ms.dev',DEV);}}catch(e){DEV='';}
 function setTab(t){
   for(const k of ['review','board','praise','rules'])$('t-'+k).setAttribute('aria-selected',String(k===t));
-  $('v-rules').hidden=t!=='rules';$('v-write').hidden=t==='rules';$('v-list').hidden=t==='rules';$('more').hidden=true;
+  $('v-rules').hidden=t!=='rules';$('v-write').hidden=t==='rules';$('v-list').hidden=t==='rules';$('more').hidden=true;$('pager').hidden=t==='rules';$('listInfo').hidden=t==='rules';
   $('careBox').hidden=t!=='board';$('aiRow').hidden=t!=='board';
   if(t==='rules')return;
-  kind=t;$('titleField').hidden=kind!=='board';$('toNickField').hidden=kind!=='praise';
-  $('writeHead').textContent={board:'이야기 꺼내기',praise:'칭찬 남기기',review:'후기 남기기'}[kind];
-  $('writeHelp').textContent={board:'요즘 마음이 어떤지, 고민이 있는지 편하게 적어 주세요. 다른 사람들이 따뜻한 댓글로 함께해요.',praise:'게시판에서 힘이 된 사람, 오늘 잘 해낸 나 자신, 누구든 칭찬해 주세요. 닉네임으로만 불러 주고 실명·학교·회사는 쓰지 마세요.',review:'써 보니 좋았던 점, 불편했던 점, 있었으면 하는 기능을 편하게 남겨 주세요. 의견은 다음 업데이트에 반영할게요.'}[kind];
+  kind=t;$('titleField').hidden=kind==='review';$('title').placeholder=kind==='praise'?'예: 오늘 7시에 일어났어요!':'';$('toNickField').hidden=true;
+  $('writeHead').textContent={board:'이야기 꺼내기',praise:'오늘의 자랑하기',review:'후기 남기기'}[kind];
+  $('writeHelp').textContent={board:'요즘 마음이 어떤지, 고민이 있는지 편하게 적어 주세요. 다른 사람들이 따뜻한 댓글로 함께해요.',praise:'오늘 해낸 작은 일을 자랑해 주세요. 일찍 일어났어요, 물 많이 마셨어요, 밥 잘 챙겨 먹었어요… 뭐든 좋아요! 올리면 칭찬봇이 바로 칭찬해 주고, 다른 사람들도 오구오구 칭찬해 줄 거예요.',review:'써 보니 좋았던 점, 불편했던 점, 있었으면 하는 기능을 편하게 남겨 주세요. 의견은 다음 업데이트에 반영할게요.'}[kind];
   $('writeMsg').textContent='';page=0;load(true);
 }
 $('t-review').onclick=()=>setTab('review');$('t-board').onclick=()=>setTab('board');$('t-praise').onclick=()=>setTab('praise');$('t-rules').onclick=()=>setTab('rules');
@@ -176,16 +199,16 @@ function reportBox(id){
 /* ---------- 공감·조회수 ---------- */
 const EMO=[['heart','❤️','좋아요'],['empathy','🤝','공감'],['praise','👏','칭찬해요'],['hug','🫂','토닥토닥']];
 const META={},BARS={},VIEWED=new Set();
-function paint(id){const m=META[id]||{r:{},v:0,mine:[]};(BARS[id]||[]).forEach(bar=>{bar.querySelectorAll('button[data-e]').forEach(b=>{const e=EMO.find(x=>x[0]===b.dataset.e);b.textContent=e[1]+' '+(m.r[e[0]]||0);b.setAttribute('aria-pressed',String(m.mine.includes(e[0])));});const v=bar.querySelector('.views');if(v)v.textContent='조회 '+(m.v||0);});}
-function reactBar(p,withViews){const bar=el('div',{class:'react-bar',role:'group','aria-label':'공감 표시'});
-  EMO.forEach(e=>{const b=el('button',{type:'button','data-e':e[0],title:e[2],'aria-label':e[2],'aria-pressed':'false'});b.onclick=async()=>{b.disabled=true;try{const r=await api('/api/posts',{method:'POST',body:JSON.stringify({action:'react',id:p.id,emoji:e[0],dev:DEV||undefined})});META[p.id]={...(META[p.id]||{}),r:r.r,mine:r.mine,v:(META[p.id]||{}).v||p.v||0};paint(p.id);}catch(err){b.title=err.message;}b.disabled=false;};bar.append(b);});
+function paint(id){const m=META[id]||{r:{},v:0,mine:[]};(BARS[id]||[]).forEach(bar=>{bar.querySelectorAll('button[data-e]').forEach(b=>{const e=EMO.find(x=>x[0]===b.dataset.e);b.textContent=e[1]+' '+(m.r[e[0]]||0);b.setAttribute('aria-pressed',String(m.mine.includes(e[0])));});const v=bar.querySelector('.views');if(v)v.textContent='조회 '+(m.v||0);});document.querySelectorAll('[data-sum-heart="'+id+'"]').forEach(n=>n.textContent='\u2764\ufe0f '+((m.r||{}).heart||0));document.querySelectorAll('[data-sum-views="'+id+'"]').forEach(n=>n.textContent='조회 '+(m.v||0));}
+function reactBar(p,withViews,only){const bar=el('div',{class:'react-bar',role:'group','aria-label':'공감 표시'});
+  EMO.filter(e=>!only||only.includes(e[0])).forEach(e=>{const b=el('button',{type:'button','data-e':e[0],title:e[2],'aria-label':e[2],'aria-pressed':'false'});b.onclick=async()=>{b.disabled=true;try{const r=await api('/api/posts',{method:'POST',body:JSON.stringify({action:'react',id:p.id,emoji:e[0],dev:DEV||undefined})});META[p.id]={...(META[p.id]||{}),r:r.r,mine:r.mine,v:(META[p.id]||{}).v||p.v||0};paint(p.id);}catch(err){b.title=err.message;}b.disabled=false;};bar.append(b);});
   if(withViews)bar.append(el('span',{class:'views'}));
   META[p.id]=META[p.id]||{r:p.r||{},v:p.v||0,mine:[]};(BARS[p.id]=BARS[p.id]||[]).push(bar);paint(p.id);return bar;}
 async function loadMine(ids){ids=ids.filter(Boolean);if(!ids.length)return;try{const j=await api('/api/posts',{method:'POST',body:JSON.stringify({action:'meta',ids,dev:DEV||undefined})});for(const id in j.meta){META[id]=j.meta[id];paint(id);}}catch(e){}}
 const seenObs='IntersectionObserver' in window?new IntersectionObserver(es=>{es.forEach(en=>{if(!en.isIntersecting)return;const id=en.target.dataset.id;seenObs.unobserve(en.target);if(VIEWED.has(id))return;VIEWED.add(id);api('/api/posts',{method:'POST',body:JSON.stringify({action:'view',id,dev:DEV||undefined})}).then(r=>{META[id]={...(META[id]||{r:{},mine:[]}),v:r.v};paint(id);}).catch(()=>{});});},{threshold:.6}):null;
 
 function replyForm(p,to,onDone){
-  const ta=el('textarea',{maxlength:'1000',placeholder:to?'이 댓글에 답글을 남겨 주세요':'공감과 응원을 담아 댓글을 남겨 주세요',style:'min-height:70px'});const sm=el('p',{class:'msg'});const sb=el('button',{class:'btn small',type:'button',text:to?'답글 올리기':'댓글 올리기'});
+  const ta=el('textarea',{maxlength:'1000',placeholder:to?'이 댓글에 답글을 남겨 주세요':(p.kind==='praise'?'오구오구 칭찬 한마디 남겨 주세요!':'공감과 응원을 담아 댓글을 남겨 주세요'),style:'min-height:70px'});const sm=el('p',{class:'msg'});const sb=el('button',{class:'btn small',type:'button',text:to?'답글 올리기':'댓글 올리기'});
   sb.onclick=async()=>{if(!$('agree').checked){sm.className='msg err';sm.textContent='위쪽 글쓰기 칸의 이용 원칙 동의에 먼저 체크해 주세요.';return;}sb.disabled=true;try{const jj=await api('/api/posts',{method:'POST',body:JSON.stringify({dev:DEV||undefined,kind:p.kind,parent:to||p.id,nick:$('nick').value,body:ta.value})});ta.value='';sm.className='msg ok';sm.textContent=jj.message||'올렸어요.';onDone();}catch(e){sm.className='msg err';sm.textContent=e.message;}sb.disabled=false;};
   return el('div',{class:'field'},[ta,sm,el('div',{class:'row'},[sb])]);
 }
@@ -205,11 +228,11 @@ function card(p){
     p.toNick?el('p',{class:'to-nick',text:'→ '+p.toNick+' 님에게 보내는 칭찬'}):null,
     p.title?el('h3',{text:p.title}):null,
     el('div',{class:'body',text:p.body}),
-    reactBar(p,true),
+    reactBar(p,true,['heart']),
   ]);
   const actions=el('div',{class:'row'},[rep]);
   rep.onclick=()=>{if(!it.querySelector('.report-box'))actions.after(reportBox(p.id));};
-  if(p.kind==='board'||p.kind==='praise'){
+  {
     const tog=el('button',{class:'btn ghost small',type:'button',text:`댓글 ${p.replies||0}`});
     actions.prepend(tog);
     let box=null;
@@ -226,24 +249,35 @@ function card(p){
       }catch(e){box.replaceChildren(el('p',{class:'msg err',text:e.message}));}
     };
     tog.onclick=()=>{if(box){box.remove();box=null;return;}open();};
+    it.__open=()=>{if(!box)open();};
   }
   it.append(actions);
-  if(seenObs)seenObs.observe(it);
-  return it;
+  // 게시판 목록: 제목 줄을 누르면 글이 펼쳐지고 조회수가 올라가요
+  const head=p.title||(p.toNick?'→ '+p.toNick+' 님에게 보내는 칭찬':(p.body.length>32?p.body.slice(0,32)+'…':p.body));
+  const row=el('details',{class:'post-row'},[el('summary',{},[el('span',{class:'row-title',text:head}),el('span',{class:'row-meta'},[el('span',{text:p.nick+' · '+fmt(p.created)}),el('span',{text:'\u{1F4AC} '+(p.replies||0)}),el('span',{'data-sum-heart':p.id,text:'\u2764\ufe0f '+((p.r||{}).heart||0)}),el('span',{'data-sum-views':p.id,text:'조회 '+(p.v||0)})])]),it]);
+  row.addEventListener('toggle',()=>{if(!row.open)return;if(!VIEWED.has(p.id)){VIEWED.add(p.id);api('/api/posts',{method:'POST',body:JSON.stringify({action:'view',id:p.id,dev:DEV||undefined})}).then(r=>{META[p.id]={...(META[p.id]||{r:{},mine:[]}),v:r.v};paint(p.id);}).catch(()=>{});}if(it.__open)it.__open();});
+  return row;
 }
 
+// 블로그처럼 한 페이지에 5개, 아래 페이지 번호(5개씩 묶음)를 눌러 넘겨요
+function drawPager(cur,pages){const nav=$('pager');nav.replaceChildren();if(pages<=1)return;
+  const add=(label,n,current)=>{const b=el('button',{type:'button',class:'btn small'+(current?' primary':''),text:label});if(current)b.setAttribute('aria-current','page');b.onclick=()=>{page=n;load(true);$('v-list').scrollIntoView({block:'start',behavior:'smooth'});};nav.append(b);};
+  const start=Math.floor(cur/5)*5;if(cur>0)add('이전',cur-1);if(start>0)add('«',start-1);
+  for(let i=start;i<Math.min(pages,start+5);i++)add(String(i+1),i,i===cur);
+  if(start+5<pages)add('»',start+5);if(cur<pages-1)add('다음',cur+1);}
 async function load(reset){
-  const L=$('v-list');if(reset)L.replaceChildren(el('p',{class:'empty',text:'불러오는 중…'}));
+  const L=$('v-list');L.replaceChildren(el('p',{class:'empty',text:'불러오는 중…'}));
   try{
-    const j=await api(`/api/posts?kind=${kind}&page=${page}`);
-    if(reset)L.replaceChildren();
-    if(reset&&!j.items.length)L.append(el('p',{class:'empty',text:{board:'아직 올라온 이야기가 없어요. 첫 이야기를 꺼내 주세요.',praise:'아직 칭찬이 없어요. 첫 칭찬을 남겨 주세요.',review:'아직 후기가 없어요. 첫 후기를 남겨 주세요.'}[kind]}));
+    const j=await api(`/api/posts?kind=${kind}&page=${page}&size=5`);
+    L.replaceChildren();
+    $('listInfo').textContent=j.total?`게시글 ${j.total}개 · ${page+1} / ${j.pages} 페이지`:'';drawPager(page,j.pages||1);
+    if(reset&&!j.items.length)L.append(el('p',{class:'empty',text:{board:'아직 올라온 이야기가 없어요. 첫 이야기를 꺼내 주세요.',praise:'아직 자랑이 없어요. 오늘의 작은 자랑을 남겨 주세요!',review:'아직 후기가 없어요. 첫 후기를 남겨 주세요.'}[kind]}));
     j.items.forEach(p=>L.append(card(p)));
     loadMine(j.items.map(p=>p.id));
-    $('more').hidden=!j.more;
+    $('more').hidden=true;
   }catch(e){L.replaceChildren(el('p',{class:'empty',text:e.message}));}
 }
-$('more').onclick=()=>{page++;load(false);};
+$('more').onclick=()=>{page++;load(true);};
 
 $('body').addEventListener('input',()=>{const v=$('body').value;if(CRISIS.test(v))$('careBox').hidden=false;const h=HINTS.find(([re])=>re.test(v));$('writeMsg').className=h?'msg err':'msg';$('writeMsg').textContent=h?`${h[1]}에 해당하는 내용은 올릴 수 없어요.`:'';});
 $('send').onclick=async()=>{
@@ -252,8 +286,8 @@ $('send').onclick=async()=>{
   $('send').disabled=true;m.className='msg';m.textContent='올리는 중…';
   try{
     try{localStorage.setItem('ms.nick',$('nick').value)}catch(e){}
-    const j=await api('/api/posts',{method:'POST',body:JSON.stringify({dev:DEV||undefined,kind,toNick:kind==='praise'?$('toNick').value:undefined,nick:$('nick').value,title:$('title').value,body:$('body').value,website:$('website').value,aiListen:kind==='board'&&$('aiListen').checked})});
-    $('body').value='';$('title').value='';$('toNick').value='';m.className='msg ok';m.textContent=(j.message||'글이 공개됐어요.')+(j.aiReply?' AI 마음 친구가 댓글을 남겼어요. 댓글 버튼을 눌러 보세요.':'');page=0;await load(true);
+    const j=await api('/api/posts',{method:'POST',body:JSON.stringify({dev:DEV||undefined,kind,nick:$('nick').value,title:$('title').value,body:$('body').value,website:$('website').value,aiListen:kind==='board'&&$('aiListen').checked})});
+    $('body').value='';$('title').value='';$('toNick').value='';m.className='msg ok';m.textContent=(j.message||'글이 공개됐어요.')+(j.aiReply==='praise'?' 칭찬봇이 칭찬 댓글을 남겼어요! 글을 눌러 확인해 보세요.':j.aiReply?' AI 마음 친구가 댓글을 남겼어요. 댓글 버튼을 눌러 보세요.':'');page=0;await load(true);
     if(j.crisis)$('careBox').hidden=false;
   }catch(e){m.className='msg err';m.textContent=e.message;}
   $('send').disabled=false;
