@@ -5,10 +5,11 @@ const { redis, pipeline, cors, clientHash, check, CRISIS, send, publicView, mask
 const { listen } = require('../lib/diary-ai.cjs');
 
 const KEEP = 365 * 86400; // 공개 글·댓글은 1년 뒤 자동 삭제
+const CRISIS_PRAISE = '여기까지 와 준 것만으로도 정말 잘했어요. 많이 힘들다면 혼자 견디지 말고 자살예방상담전화 109(24시간)나 1577-0199에 이야기해 주세요. 위급하면 112·119로 바로 연락해요.'; // 칭찬 게시판에 위기 표현이 보일 때 칭찬봇 대신 남기는 안내
 const PER_DAY = { post: 5, comment: 20 }; // 접속 구분값당 하루
 const SITE_DAY = { review: 100, board: 100, praise: 100, comment: 300 }; // 사이트 전체 하루
-const KINDS = ['review', 'board', 'praise']; // 후기·마음 나눔·칭찬 릴레이
-const THREAD = ['board', 'praise']; // 댓글·대댓글을 달 수 있는 게시판
+const KINDS = ['review', 'board', 'praise']; // 후기·마음 나눔·오구오구 칭찬(자랑) 게시판
+const THREAD = ['review', 'board', 'praise']; // 댓글·대댓글을 달 수 있는 게시판(후기·마음 나눔·칭찬 모두)
 const EMOJIS = ['heart', 'empathy', 'praise', 'hug']; // ❤️ 좋아요 · 🤝 공감 · 👏 칭찬해요 · 🫂 토닥토닥
 const voterOf = (who, dev) => crypto.createHash('sha256').update(who + '|' + (dev || '')).digest('hex').slice(0, 24);
 async function metaFor(ids, voter) {
@@ -39,7 +40,7 @@ module.exports = async (req, res) => {
         if (!rawParent || JSON.parse(rawParent).status !== 'approved') return send(res, 404, { error: '글을 찾을 수 없어요.' });
       }
       const key = parent ? `replies:${parent}` : `list:${kind}`;
-      const page = Math.max(0, parseInt(req.query.page || '0', 10) || 0), size = 20;
+      const page = Math.max(0, parseInt(req.query.page || '0', 10) || 0), size = parent ? 100 : (req.query.size === '5' ? 5 : 20); // 목록은 한 페이지 5개, 댓글은 한 번에 100개
       const ids = parent
         ? await redis('ZRANGE', key, page * size, page * size + size - 1)
         : await redis('ZREVRANGE', key, page * size, page * size + size - 1);
@@ -47,7 +48,8 @@ module.exports = async (req, res) => {
       const items = raws.filter(Boolean).map(s => JSON.parse(s)).filter(p => p.status === 'approved' && (p.ai || !check([p.nick, p.title, p.body].join(' ')))).map(p => ({ ...publicView(p), ai: !!p.ai }));
       const meta = await metaFor(items.map(p => p.id), null);
       for (const it of items) { it.r = meta[it.id].r; it.v = meta[it.id].v; }
-      return send(res, 200, { items, more: ids.length === size });
+      const total = parent ? items.length : Number(await redis('ZCARD', key)) || 0;
+      return send(res, 200, { items, more: ids.length === size, total, pages: Math.max(1, Math.ceil(total / size)), page });
     }
     if (req.method !== 'POST') return send(res, 405, { error: '지원하지 않는 요청이에요.' });
     if (process.env.COMMUNITY_PAUSED === '1') return send(res, 503, { error: '지금은 새 글 접수를 잠시 쉬고 있어요.' });
@@ -82,13 +84,13 @@ module.exports = async (req, res) => {
 
     const kind = KINDS.includes(b.kind) ? b.kind : 'review';
     let parent = b.parent ? String(b.parent).slice(0, 40) : null, to = null;
-    const toNick = kind === 'praise' && !parent ? String(b.toNick || '').trim().slice(0, 12) : '';
+    const toNick = ''; // 예전 칭찬 릴레이의 받는 사람 칸은 쓰지 않아요
     const nick = String(b.nick || '').trim().slice(0, 12) || '익명';
     const m1 = maskPrivate(parent || kind === 'review' ? '' : String(b.title || '').trim().slice(0, 60));
     const m2 = maskPrivate(String(b.body || '').trim().slice(0, 2000));
     const title = m1.text, body = m2.text, masked = [...new Set([...m1.masked, ...m2.masked])];
     if (body.length < 5) return send(res, 400, { error: '내용을 5자 이상 적어 주세요.' });
-    if (kind === 'board' && !parent && title.length < 2) return send(res, 400, { error: '제목을 적어 주세요.' });
+    if ((kind === 'board' || kind === 'praise') && !parent && title.length < 2) return send(res, 400, { error: '제목을 적어 주세요.' });
     if (/[가-힣]/.test(nick) === false && !/[a-z0-9]/i.test(nick)) return send(res, 400, { error: '닉네임을 확인해 주세요.' });
     if (parent) {
       const pp = await redis('GET', `post:${parent}`), P = pp && JSON.parse(pp);
@@ -126,6 +128,16 @@ module.exports = async (req, res) => {
     };
     if (parent) await addReply(parent);
 
+    // 오구오구 칭찬 게시판: 자랑 글에는 칭찬봇이 바로 칭찬 댓글을 달아요(AI·외부 전송 없이 정해진 문장 중에서 골라요).
+    if (kind === 'praise' && !parent) {
+      const PRAISE = ['오구오구 너무 잘했어요! 👏 이런 작은 하루가 쌓여서 큰 힘이 돼요.', '와, 진짜 대단해요! 오늘의 나 칭찬 백 개 드려요 💯', '잘했다 잘했어! 해낸 거 자체가 멋져요 ✨', '우쭈쭈 최고예요! 내일의 나도 고마워할 거예요 🥰', '이거 쉬운 일 아닌데 해냈네요! 박수 짝짝짝 👏👏', '오늘도 스스로를 챙긴 당신, 정말 멋져요 🌷', '칭찬 도장 꾹! 오늘 하루 아주 잘 보냈어요 💮', '해낸 걸 자랑해 줘서 고마워요. 그 마음까지 칭찬해요 💛'];
+      const body2 = crisis ? CRISIS_PRAISE : PRAISE[crypto.randomInt(PRAISE.length)];
+      const rid = Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
+      const rp = { id: rid, kind: 'praise', parent: id, nick: '오구오구 칭찬봇 (자동)', title: '', body: body2, created: Date.now() + 1, status: 'approved', moderation: 'auto', ai: true, reports: 0, who: 'bot', replies: 0 };
+      await redis('SET', `post:${rid}`, JSON.stringify(rp), 'EX', KEEP);
+      await redis('ZADD', `replies:${id}`, rp.created, rid);
+      await addReply(id);
+    }
     // AI 공감 답글: 마음 나눔 새 글 + 작성자 동의(aiListen)일 때만
     let aiReply = null;
     if (kind === 'board' && !parent && b.aiListen === true) {
@@ -140,7 +152,7 @@ module.exports = async (req, res) => {
       }
     }
     const note = masked.length ? ` 개인정보로 보이는 내용(${masked.join(', ')})은 자동으로 가렸어요.` : '';
-    return send(res, 200, { ok: true, id, status: 'approved', crisis, masked, aiReply, message: (parent ? '댓글이 공개됐어요.' : '글이 공개됐어요.') + note });
+    return send(res, 200, { ok: true, id, status: 'approved', crisis, masked, aiReply: kind === 'praise' && !parent ? 'praise' : aiReply, message: (parent ? '댓글이 공개됐어요.' : '글이 공개됐어요.') + note });
   } catch (e) {
     return send(res, e.status || 500, { error: e.status ? e.message : '잠시 문제가 생겼어요. 조금 뒤에 다시 해 주세요.' });
   }
