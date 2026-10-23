@@ -64,6 +64,8 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
 .row-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted)}
 .post-row>.item{border:0;border-radius:0 0 14px 14px}
 .notice-box>summary{cursor:pointer}
+.list-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.empty-box{background:var(--surface);border:1px dashed var(--line);border-radius:14px}
 .pager{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .pager .btn{min-width:38px}
 .to-nick{font-size:13px;color:var(--accent);font-weight:700}
@@ -88,7 +90,7 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
     <div class="row small"><a href="notices.html">공지사항</a><a href="./">← 내 일기장으로</a></div>
   </header>
 
-  <details class="panel notice-box" open>
+  <details class="panel notice-box">
     <summary><b>📌 공지사항 · 이용 규칙·신고·제재</b></summary>
     <ul class="rules">
       <li><b>신고</b>: 글·댓글마다 "신고" 버튼이 있어요. 서로 다른 신고가 쌓이면 글이 자동으로 가려지고 운영자가 확인해요. 허위·보복 신고도 제재 대상이에요.</li>
@@ -116,6 +118,11 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
     </ul>
   </div>
 
+
+  <div class="list-head" id="listHeadBox"><h2 id="listHead">게시글 목록</h2><span id="listInfo" class="muted small" role="status"></span></div>
+  <section id="v-list" class="list" aria-live="polite"></section>
+  <nav id="pager" class="pager" aria-label="게시판 페이지"></nav>
+
   <section id="v-write" class="panel">
     <h2 id="writeHead">후기 남기기</h2>
     <p id="writeHelp" class="muted small">써 보니 좋았던 점, 불편했던 점, 있었으면 하는 기능을 편하게 남겨 주세요. 의견은 다음 업데이트에 반영할게요.</p>
@@ -129,10 +136,6 @@ textarea{min-height:120px;resize:vertical;font-family:var(--f-display);font-size
     <p id="writeMsg" class="msg"></p>
     <div class="row"><button class="btn primary" id="send">올리기</button><span class="muted small">자동 검사를 통과하면 바로 공개돼요. 하루 글 5개·댓글 20개까지. 전화번호·이메일·주소·링크는 자동으로 [가림] 처리돼요.</span></div>
   </section>
-
-  <section id="v-list" class="list" aria-live="polite"></section>
-  <p id="listInfo" class="muted small" role="status"></p>
-  <nav id="pager" class="pager" aria-label="게시판 페이지"></nav>
   <button class="btn" id="more" hidden>더 보기</button>
 
   <section id="v-rules" class="panel" hidden>
@@ -170,7 +173,7 @@ let kind='review',page=0;
 let DEV='';try{DEV=localStorage.getItem('ms.dev')||'';if(!/^[a-f0-9]{32}$/.test(DEV)){DEV=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');localStorage.setItem('ms.dev',DEV);}}catch(e){DEV='';}
 function setTab(t){
   for(const k of ['review','board','praise','rules'])$('t-'+k).setAttribute('aria-selected',String(k===t));
-  $('v-rules').hidden=t!=='rules';$('v-write').hidden=t==='rules';$('v-list').hidden=t==='rules';$('more').hidden=true;$('pager').hidden=t==='rules';$('listInfo').hidden=t==='rules';
+  $('v-rules').hidden=t!=='rules';$('v-write').hidden=t==='rules';$('v-list').hidden=t==='rules';$('more').hidden=true;$('pager').hidden=t==='rules';$('listHeadBox').hidden=t==='rules';$('listHead').textContent={board:'마음 나눔 게시글 목록',praise:'오구오구 칭찬 게시글 목록',review:'후기 목록'}[t]||'게시글 목록';
   $('careBox').hidden=t!=='board';$('aiRow').hidden=t!=='board';
   if(t==='rules')return;
   kind=t;$('titleField').hidden=kind==='review';$('title').placeholder=kind==='praise'?'예: 오늘 7시에 일어났어요!':'';$('toNickField').hidden=true;
@@ -270,8 +273,8 @@ async function load(reset){
   try{
     const j=await api(`/api/posts?kind=${kind}&page=${page}&size=5`);
     L.replaceChildren();
-    $('listInfo').textContent=j.total?`게시글 ${j.total}개 · ${page+1} / ${j.pages} 페이지`:'';drawPager(page,j.pages||1);
-    if(reset&&!j.items.length)L.append(el('p',{class:'empty',text:{board:'아직 올라온 이야기가 없어요. 첫 이야기를 꺼내 주세요.',praise:'아직 자랑이 없어요. 오늘의 작은 자랑을 남겨 주세요!',review:'아직 후기가 없어요. 첫 후기를 남겨 주세요.'}[kind]}));
+    $('listInfo').textContent=j.total?`총 ${j.total}개 · ${page+1} / ${j.pages} 페이지`:'총 0개';drawPager(page,j.pages||1);
+    if(!j.items.length)L.append(el('p',{class:'empty empty-box',text:{board:'아직 글이 없어요(0개). 아래에서 첫 이야기를 꺼내 주세요.',praise:'아직 글이 없어요(0개). 아래에서 오늘의 작은 자랑을 남겨 주세요!',review:'아직 글이 없어요(0개). 아래에서 첫 후기를 남겨 주세요.'}[kind]}));
     j.items.forEach(p=>L.append(card(p)));
     loadMine(j.items.map(p=>p.id));
     $('more').hidden=true;
